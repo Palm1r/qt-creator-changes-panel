@@ -14,7 +14,7 @@ projects' repositories.
 - Single click opens the file in the editor.
 - Context menu: Open, Open Containing Folder, Copy Full Path.
 - Toolbar filter to show/hide untracked files (persisted in settings).
-- Activation shortcut: `Meta+G` (macOS) / `Alt+G`.
+- Activation shortcut: `Meta+P` (macOS) / `Alt+P`.
 
 The pane relies on Qt Creator's VCS status monitoring: make sure
 **"Show file status"** is enabled in *Preferences > Version Control > General*
