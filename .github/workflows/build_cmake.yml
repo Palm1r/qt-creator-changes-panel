@@ -3,7 +3,7 @@ name: Build plugin
 on: [push]
 
 env:
-  PLUGIN_NAME: QtCreatorChangesPanel
+  PLUGIN_NAME: ChangesPanel
   QT_VERSION: 6.11.1
   QT_CREATOR_VERSION: 20.0.0
   MACOS_DEPLOYMENT_TARGET: "11.0"

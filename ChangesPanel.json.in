@@ -1,0 +1,14 @@
+{
+    "Id" : "changespanel",
+    "Name" : "ChangesPanel",
+    "Version" : "0.5.0",
+    "CompatVersion" : "${IDE_VERSION_COMPAT}",
+    "Vendor" : "Petr Mironychev",
+    "VendorId" : "petrmironychev",
+    "Copyright" : "(C) Petr Mironychev, ${IDE_COPYRIGHT}",
+    "License" : "MIT",
+    "Description" : "A Qt Creator plugin that adds a **Changes** navigation panel",
+    "Url" : "https://github.com/Palm1r",
+    "DocumentationUrl" : "",
+    ${IDE_PLUGIN_DEPENDENCIES}
+}

@@ -1,4 +1,26 @@
-# QtCreatorChangesPanel
+# Qt Creator Changes Panel
+
+A Qt Creator plugin that adds a **Changes** navigation pane — a sibling of
+"Open Documents" that lists the files currently modified according to version control
+(git status: modified, added, deleted, renamed, unmerged, untracked) across the open
+projects' repositories.
+
+## Features
+
+- Lists all VCS-changed files of the open projects, updated live (same data source
+  that colors files in the Projects tree).
+- File name on the left, its directory (relative to the repository) dimmed on the right.
+- Files are colored by their VCS state, with the state shown in the tooltip.
+- Single click opens the file in the editor.
+- Context menu: Open, Open Containing Folder, Copy Full Path.
+- Toolbar filter to show/hide untracked files (persisted in settings).
+- Activation shortcut: `Meta+G` (macOS) / `Alt+G`.
+
+The pane relies on Qt Creator's VCS status monitoring: make sure
+**"Show file status"** is enabled in *Preferences > Version Control > General*
+(it is enabled by default).
+
+Requires Qt Creator 20 (uses the `Core::VcsManager` file-state API).
 
 ## How to Build
 
