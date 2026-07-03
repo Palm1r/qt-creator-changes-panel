@@ -1,0 +1,14 @@
+{
+    "Id" : "qtcreatorchangespanel",
+    "Name" : "QtCreatorChangesPanel",
+    "Version" : "0.0.1",
+    "CompatVersion" : "0.0.1",
+    "Vendor" : "Petr Mironychev",
+    "VendorId" : "petrmironychev",
+    "Copyright" : "(C) Petr Mironychev",
+    "License" : "MIT",
+    "Description" : "Qt Creator Changes Panel",
+    "Url" : "https://github.com/Palm1r",
+    "DocumentationUrl" : "",
+    ${IDE_PLUGIN_DEPENDENCIES}
+}
