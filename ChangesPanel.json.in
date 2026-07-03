@@ -7,8 +7,8 @@
     "VendorId" : "petrmironychev",
     "Copyright" : "(C) Petr Mironychev, ${IDE_COPYRIGHT}",
     "License" : "MIT",
-    "Description" : "A Qt Creator plugin that adds a **Changes** navigation panel",
-    "Url" : "https://github.com/Palm1r",
+    "Description" : "A Qt Creator plugin that adds a Changes navigation panel",
+    "Url" : "https://github.com/Palm1r/qt-creator-changes-panel",
     "DocumentationUrl" : "",
     ${IDE_PLUGIN_DEPENDENCIES}
 }
