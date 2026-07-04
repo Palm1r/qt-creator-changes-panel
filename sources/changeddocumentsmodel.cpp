@@ -3,96 +3,140 @@
 
 #include "changeddocumentsmodel.h"
 
+#include "changespaneltr.h"
+#include "gitfileactions.h"
+#include "gitstatustracker.h"
+
 #include <coreplugin/vcsmanager.h>
 
-#include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
 
 #include <utils/fsengine/fileiconprovider.h>
 #include <utils/stringutils.h>
-#include <utils/theme/theme.h>
 #include <utils/treemodel.h>
 
 #include <QFont>
 #include <QTimer>
+
+#include <algorithm>
 
 using namespace Core;
 using namespace Utils;
 
 namespace ChangesPanel {
 
-ChangedDocumentsModel::ChangedDocumentsModel(QObject *parent)
-    : QAbstractTableModel(parent)
+constexpr quintptr kGroupInternalId = ChangedDocumentsModel::GroupCount;
+
+ChangedDocumentsModel::ChangedDocumentsModel(GitStatusTracker *tracker, QObject *parent)
+    : QAbstractItemModel(parent)
+    , m_tracker(tracker)
 {
     connect(
         VcsManager::instance(),
         &VcsManager::updateFileState,
         this,
-        &ChangedDocumentsModel::updateFileStates);
+        &ChangedDocumentsModel::onVcsFileStatesChanged);
     connect(
         VcsManager::instance(),
         &VcsManager::clearFileState,
         this,
         &ChangedDocumentsModel::clearRepository);
-
-    using namespace ProjectExplorer;
     connect(
-        ProjectManager::instance(),
-        &ProjectManager::projectAdded,
+        m_tracker,
+        &GitStatusTracker::statusChanged,
         this,
-        &ChangedDocumentsModel::onProjectAdded);
+        &ChangedDocumentsModel::onStatusChanged);
     connect(
-        ProjectManager::instance(),
-        &ProjectManager::projectRemoved,
+        ProjectExplorer::ProjectManager::instance(),
+        &ProjectExplorer::ProjectManager::projectRemoved,
         this,
-        &ChangedDocumentsModel::onProjectRemoved);
-
-    for (Project *project : ProjectManager::projects())
-        onProjectAdded(project);
+        &ChangedDocumentsModel::scheduleRevalidate);
 }
 
-void ChangedDocumentsModel::onProjectAdded(ProjectExplorer::Project *project)
+QModelIndex ChangedDocumentsModel::index(int row, int column, const QModelIndex &parent) const
 {
-    VcsManager::monitorDirectory(project->rootProjectDirectory(), true);
+    if (column < 0 || column >= ColumnCount)
+        return {};
+    if (!parent.isValid()) {
+        if (row < 0 || row >= GroupCount)
+            return {};
+        return createIndex(row, column, kGroupInternalId);
+    }
+    if (parent.internalId() != kGroupInternalId || parent.column() != 0)
+        return {};
+    const int group = parent.row();
+    if (row < 0 || row >= int(m_entries.at(group).size()))
+        return {};
+    return createIndex(row, column, quintptr(group));
 }
 
-void ChangedDocumentsModel::onProjectRemoved(ProjectExplorer::Project *project)
+QModelIndex ChangedDocumentsModel::parent(const QModelIndex &child) const
 {
-    VcsManager::monitorDirectory(project->rootProjectDirectory(), false);
-    QTimer::singleShot(0, this, &ChangedDocumentsModel::revalidate);
+    if (!child.isValid() || child.internalId() == kGroupInternalId)
+        return {};
+    return createIndex(int(child.internalId()), 0, kGroupInternalId);
+}
+
+QModelIndex ChangedDocumentsModel::groupIndex(int group) const
+{
+    return index(group, 0);
 }
 
 int ChangedDocumentsModel::rowCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : int(m_entries.size());
+    if (!parent.isValid())
+        return GroupCount;
+    if (parent.internalId() == kGroupInternalId && parent.column() == 0)
+        return int(m_entries.at(parent.row()).size());
+    return 0;
 }
 
 int ChangedDocumentsModel::columnCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : ColumnCount;
+    Q_UNUSED(parent)
+    return ColumnCount;
 }
 
 QVariant ChangedDocumentsModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() < 0 || index.row() >= int(m_entries.size()))
+    if (!index.isValid())
         return {};
+    if (index.internalId() == kGroupInternalId)
+        return groupData(index.row(), index.column(), role);
 
-    const Entry &entry = m_entries.at(index.row());
+    const int group = int(index.internalId());
+    if (index.row() < 0 || index.row() >= int(m_entries.at(group).size()))
+        return {};
+    return entryData(m_entries.at(group).at(index.row()), group, index.column(), role);
+}
+
+QVariant ChangedDocumentsModel::groupData(int group, int column, int role) const
+{
+    if (role == Qt::DisplayRole && column == FileNameColumn) {
+        switch (group) {
+        case MergeGroup:    return Tr::tr("Merge Changes");
+        case StagedGroup:   return Tr::tr("Staged Changes");
+        case UnstagedGroup: return Tr::tr("Unstaged Changes");
+        }
+    }
+    return {};
+}
+
+QVariant ChangedDocumentsModel::entryData(const Entry &entry, int group, int column,
+                                          int role) const
+{
     switch (role) {
     case Qt::DisplayRole:
-        return index.column() == FileNameColumn ? entry.filePath.fileName()
-                                                : entry.relativeDirectory;
+        if (column == FileNameColumn)
+            return entry.filePath.fileName();
+        return {};
     case Qt::DecorationRole:
-        if (index.column() == FileNameColumn)
+        if (column == FileNameColumn)
             return FileIconProvider::icon(entry.filePath);
         return {};
     case Qt::ForegroundRole:
-        if (index.column() == FileNameColumn)
+        if (column == FileNameColumn)
             return VcsManager::fileStateColor(entry.state);
-        return creatorColor(Theme::TextColorDisabled);
-    case Qt::TextAlignmentRole:
-        if (index.column() == DirectoryColumn)
-            return QVariant(Qt::AlignRight | Qt::AlignVCenter);
         return {};
     case Qt::FontRole:
         if (entry.state == VcsFileState::Deleted) {
@@ -102,6 +146,26 @@ QVariant ChangedDocumentsModel::data(const QModelIndex &index, int role) const
         }
         return {};
     case Qt::ToolTipRole: {
+        if (column == DiffColumn)
+            return Tr::tr("Diff \"%1\"").arg(entry.filePath.fileName());
+        if (column == RevertColumn) {
+            if (entry.state == VcsFileState::Modified)
+                return Tr::tr("Revert All Changes to \"%1\"").arg(entry.filePath.fileName());
+            if (entry.state == VcsFileState::Deleted)
+                return Tr::tr("Recover \"%1\"").arg(entry.filePath.fileName());
+            return {};
+        }
+        if (column == StageColumn) {
+            switch (stageActionFor(entry.state, group == StagedGroup)) {
+            case StageAction::Stage:
+                return Tr::tr("Stage \"%1\"").arg(entry.filePath.fileName());
+            case StageAction::Unstage:
+                return Tr::tr("Unstage \"%1\"").arg(entry.filePath.fileName());
+            case StageAction::None:
+                return {};
+            }
+            return {};
+        }
         QString toolTip = entry.filePath.toUserOutput();
         const QString description = VcsManager::fileStateDescription(entry.state);
         if (!description.isEmpty())
@@ -112,6 +176,12 @@ QVariant ChangedDocumentsModel::data(const QModelIndex &index, int role) const
         return entry.filePath.toVariant();
     case StateRole:
         return int(entry.state);
+    case StagedRole:
+        return group == StagedGroup;
+    case RelativeDirectoryRole:
+        if (column == FileNameColumn)
+            return entry.relativeDirectory;
+        return {};
     }
     return {};
 }
@@ -124,84 +194,193 @@ bool ChangedDocumentsModel::lessThan(const Entry &a, const Entry &b)
     return a.filePath < b.filePath;
 }
 
-int ChangedDocumentsModel::rowOf(const FilePath &filePath) const
+ChangedDocumentsModel::EntryLocation ChangedDocumentsModel::findEntry(
+    const FilePath &filePath) const
 {
-    // m_entries is kept sorted by lessThan(), which orders solely by filePath,
-    // so an existing entry can be located with a binary search.
     Entry probe;
     probe.filePath = filePath;
-    const auto it = std::lower_bound(m_entries.cbegin(), m_entries.cend(), probe, &lessThan);
-    if (it != m_entries.cend() && it->filePath == filePath)
-        return int(it - m_entries.cbegin());
-    return -1;
+    for (int group = 0; group < GroupCount; ++group) {
+        const auto &entries = m_entries.at(group);
+        const auto it = std::lower_bound(entries.cbegin(), entries.cend(), probe, &lessThan);
+        if (it != entries.cend() && it->filePath == filePath)
+            return {group, int(it - entries.cbegin())};
+    }
+    return {};
 }
 
-void ChangedDocumentsModel::updateFileStates(const FilePath &repository, const QStringList &files)
+int ChangedDocumentsModel::groupFor(
+    const FilePath &filePath, const FilePath &repository, VcsFileState state) const
 {
-    for (const QString &relativePath : files) {
-        if (relativePath.isEmpty())
+    if (state == VcsFileState::Unmerged)
+        return MergeGroup;
+    const QString relativePath = filePath.relativeChildPath(repository).path();
+    const auto it = m_stagedFiles.constFind(repository);
+    return it != m_stagedFiles.cend() && it->contains(relativePath) ? StagedGroup
+                                                                    : UnstagedGroup;
+}
+
+bool ChangedDocumentsModel::tracksRepository(const FilePath &repository) const
+{
+    for (int group = 0; group < GroupCount; ++group) {
+        const bool found = std::any_of(
+            m_entries.at(group).cbegin(), m_entries.at(group).cend(),
+            [&repository](const Entry &entry) { return entry.repository == repository; });
+        if (found)
+            return true;
+    }
+    return false;
+}
+
+void ChangedDocumentsModel::onStatusChanged(const FilePath &repository, const GitStatus &status)
+{
+    if (!m_tracker->isWatching(repository) && !tracksRepository(repository))
+        return;
+
+    applyStagedFiles(repository, status.stagedFiles);
+    removeVanishedEntries(repository, status.fileStates);
+    for (auto it = status.fileStates.cbegin(); it != status.fileStates.cend(); ++it) {
+        const QString &relativePath = it.key();
+        if (relativePath.isEmpty() || relativePath.endsWith('/')
+            || relativePath.startsWith("../")) {
             continue;
+        }
         const FilePath filePath = repository.pathAppended(relativePath);
         const QString relativeDir = filePath.parentDir().relativeChildPath(repository).path();
-        setState(filePath, repository, relativeDir, VcsManager::fileState(filePath));
+        setState(filePath, repository, relativeDir, it.value());
     }
+}
+
+void ChangedDocumentsModel::removeVanishedEntries(const FilePath &repository,
+                                                  const Core::FileStateHash &states)
+{
+    for (int group = 0; group < GroupCount; ++group) {
+        for (int i = int(m_entries.at(group).size()) - 1; i >= 0; --i) {
+            const Entry &entry = m_entries.at(group).at(i);
+            if (entry.repository != repository)
+                continue;
+            const QString relativePath = entry.filePath.relativeChildPath(repository).path();
+            if (!states.contains(relativePath))
+                removeEntry(group, i);
+        }
+    }
+}
+
+void ChangedDocumentsModel::onVcsFileStatesChanged(const FilePath &repository)
+{
+    m_tracker->requestRefresh(repository);
 }
 
 void ChangedDocumentsModel::setState(
     const FilePath &filePath,
     const FilePath &repository,
-    const QString &relativeDir,
+    const QString &relativeDirectory,
     VcsFileState state)
 {
-    const int row = rowOf(filePath);
+    const EntryLocation location = findEntry(filePath);
     if (state == VcsFileState::Unknown) {
-        if (row >= 0)
-            removeEntry(row);
+        if (location.isValid())
+            removeEntry(location.group, location.row);
         return;
     }
-    if (row >= 0) {
-        if (m_entries[row].state != state) {
-            m_entries[row].state = state;
-            emit dataChanged(
-                index(row, 0),
-                index(row, ColumnCount - 1),
-                {Qt::ForegroundRole, Qt::FontRole, Qt::ToolTipRole, StateRole});
-        }
+    const int targetGroup = groupFor(filePath, repository, state);
+    if (!location.isValid()) {
+        insertEntry(targetGroup, {filePath, repository, relativeDirectory, state});
         return;
     }
-    const Entry entry{filePath, repository, relativeDir, state};
-    const auto it = std::lower_bound(m_entries.cbegin(), m_entries.cend(), entry, &lessThan);
-    const int newRow = int(it - m_entries.cbegin());
-    beginInsertRows({}, newRow, newRow);
-    m_entries.insert(it, entry);
-    endInsertRows();
+    if (m_entries.at(location.group).at(location.row).state == state)
+        return;
+    if (location.group == targetGroup) {
+        m_entries.at(location.group)[location.row].state = state;
+        emit dataChanged(
+            index(location.row, 0, groupIndex(location.group)),
+            index(location.row, ColumnCount - 1, groupIndex(location.group)),
+            {Qt::ForegroundRole, Qt::FontRole, Qt::ToolTipRole, StateRole});
+    } else {
+        Entry entry = m_entries.at(location.group).at(location.row);
+        entry.state = state;
+        removeEntry(location.group, location.row);
+        insertEntry(targetGroup, std::move(entry));
+    }
 }
 
 void ChangedDocumentsModel::clearRepository(const FilePath &repository)
 {
-    for (int i = int(m_entries.size()) - 1; i >= 0; --i) {
-        if (m_entries.at(i).repository == repository)
-            removeEntry(i);
+    m_stagedFiles.remove(repository);
+    for (int group = 0; group < GroupCount; ++group) {
+        for (int i = int(m_entries.at(group).size()) - 1; i >= 0; --i) {
+            if (m_entries.at(group).at(i).repository == repository)
+                removeEntry(group, i);
+        }
     }
+}
+
+void ChangedDocumentsModel::scheduleRevalidate()
+{
+    QTimer::singleShot(0, this, &ChangedDocumentsModel::revalidate);
 }
 
 void ChangedDocumentsModel::revalidate()
 {
-    for (int i = int(m_entries.size()) - 1; i >= 0; --i) {
-        const Entry &entry = m_entries.at(i);
-        const VcsFileState state = VcsManager::fileState(entry.filePath);
-        if (state == VcsFileState::Unknown)
-            removeEntry(i);
-        else if (m_entries[i].state != state)
-            setState(entry.filePath, entry.repository, entry.relativeDirectory, state);
+    for (int group = 0; group < GroupCount; ++group) {
+        for (int i = int(m_entries.at(group).size()) - 1; i >= 0; --i) {
+            if (!m_tracker->isWatching(m_entries.at(group).at(i).repository))
+                removeEntry(group, i);
+        }
+    }
+    for (auto it = m_stagedFiles.begin(); it != m_stagedFiles.end();) {
+        if (m_tracker->isWatching(it.key()))
+            ++it;
+        else
+            it = m_stagedFiles.erase(it);
     }
 }
 
-void ChangedDocumentsModel::removeEntry(int row)
+void ChangedDocumentsModel::removeEntry(int group, int row)
 {
-    beginRemoveRows({}, row, row);
-    m_entries.erase(m_entries.begin() + row);
+    beginRemoveRows(groupIndex(group), row, row);
+    m_entries.at(group).erase(m_entries.at(group).begin() + row);
     endRemoveRows();
+}
+
+void ChangedDocumentsModel::insertEntry(int group, Entry entry)
+{
+    auto &entries = m_entries.at(group);
+    const auto it = std::lower_bound(entries.cbegin(), entries.cend(), entry, &lessThan);
+    const int newRow = int(it - entries.cbegin());
+    beginInsertRows(groupIndex(group), newRow, newRow);
+    entries.insert(it, std::move(entry));
+    endInsertRows();
+}
+
+void ChangedDocumentsModel::applyStagedFiles(const FilePath &repository,
+                                             const QSet<QString> &stagedFiles)
+{
+    const auto it = m_stagedFiles.constFind(repository);
+    const bool unchanged = it != m_stagedFiles.cend() ? *it == stagedFiles
+                                                      : stagedFiles.isEmpty();
+    if (unchanged)
+        return;
+    m_stagedFiles.insert(repository, stagedFiles);
+
+    QList<FilePath> changed;
+    for (int group : {int(StagedGroup), int(UnstagedGroup)}) {
+        for (const Entry &entry : m_entries.at(group)) {
+            if (entry.repository != repository)
+                continue;
+            const QString relativePath = entry.filePath.relativeChildPath(repository).path();
+            if ((group == StagedGroup) != stagedFiles.contains(relativePath))
+                changed.append(entry.filePath);
+        }
+    }
+    for (const FilePath &filePath : changed) {
+        const EntryLocation location = findEntry(filePath);
+        if (!location.isValid())
+            continue;
+        Entry entry = m_entries.at(location.group).at(location.row);
+        removeEntry(location.group, location.row);
+        insertEntry(location.group == StagedGroup ? UnstagedGroup : StagedGroup,
+                    std::move(entry));
+    }
 }
 
 } // namespace ChangesPanel

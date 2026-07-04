@@ -17,6 +17,7 @@ qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES
 add_qtc_plugin(ChangesPanel
   PLUGIN_DEPENDS
     QtCreator::Core
+    QtCreator::Git
     QtCreator::ProjectExplorer
   DEPENDS
     Qt::Widgets
@@ -27,6 +28,8 @@ add_qtc_plugin(ChangesPanel
     .github/workflows/README.md
     README.md
     resources/changespanel.qrc
+    sources/changeddocumentsdelegate.cpp
+    sources/changeddocumentsdelegate.h
     sources/changeddocumentsmodel.cpp
     sources/changeddocumentsmodel.h
     sources/changeddocumentsproxymodel.cpp
@@ -38,6 +41,10 @@ add_qtc_plugin(ChangesPanel
     sources/changespanel.cpp
     sources/changespanelconstants.h
     sources/changespaneltr.h
+    sources/gitfileactions.cpp
+    sources/gitfileactions.h
+    sources/gitstatustracker.cpp
+    sources/gitstatustracker.h
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

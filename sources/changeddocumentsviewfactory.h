@@ -8,16 +8,18 @@
 namespace ChangesPanel {
 
 class ChangedDocumentsModel;
+class GitStatusTracker;
 
 class ChangedDocumentsViewFactory final : public Core::INavigationWidgetFactory
 {
 public:
-    explicit ChangedDocumentsViewFactory(ChangedDocumentsModel *model);
+    ChangedDocumentsViewFactory(ChangedDocumentsModel *model, GitStatusTracker *tracker);
 
     Core::NavigationView createWidget() final;
 
 private:
     ChangedDocumentsModel *m_model = nullptr;
+    GitStatusTracker *m_tracker = nullptr;
 };
 
 } // namespace ChangesPanel

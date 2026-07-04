@@ -3,6 +3,7 @@
 
 #include "changeddocumentsmodel.h"
 #include "changeddocumentsviewfactory.h"
+#include "gitstatustracker.h"
 
 #include <coreplugin/icore.h>
 #include <coreplugin/vcsmanager.h>
@@ -28,8 +29,9 @@ public:
     {
         installTranslator();
 
-        m_model = new ChangedDocumentsModel(this);
-        m_viewFactory = std::make_unique<ChangedDocumentsViewFactory>(m_model);
+        m_tracker = new GitStatusTracker(this);
+        m_model = new ChangedDocumentsModel(m_tracker, this);
+        m_viewFactory = std::make_unique<ChangedDocumentsViewFactory>(m_model, m_tracker);
     }
 
     ShutdownFlag aboutToShutdown() final
@@ -40,7 +42,9 @@ public:
         }
         m_viewFactory.reset();
         disconnect(Core::VcsManager::instance(), nullptr, m_model, nullptr);
+        disconnect(Core::VcsManager::instance(), nullptr, m_tracker, nullptr);
         disconnect(ProjectExplorer::ProjectManager::instance(), nullptr, m_model, nullptr);
+        disconnect(ProjectExplorer::ProjectManager::instance(), nullptr, m_tracker, nullptr);
         return SynchronousShutdown;
     }
 
@@ -60,6 +64,7 @@ private:
         }
     }
 
+    GitStatusTracker *m_tracker = nullptr;
     ChangedDocumentsModel *m_model = nullptr;
     QTranslator *m_translator = nullptr;
     std::unique_ptr<ChangedDocumentsViewFactory> m_viewFactory;
