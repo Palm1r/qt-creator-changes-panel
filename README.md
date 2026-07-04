@@ -23,6 +23,43 @@ The pane relies on Qt Creator's VCS status monitoring: make sure
 
 Requires Qt Creator 20 (uses the `Core::VcsManager` file-state API).
 
+## Installation
+
+Prebuilt binaries for Windows, Linux, and macOS ship with every release. Install
+either through the extension registry or from a downloaded archive.
+
+### From the extension registry (recommended)
+
+The plugin is not in the official Qt Creator registry yet. Until it is, point Qt
+Creator at this repository so it shows up in the built-in extension browser:
+
+1. Open *Preferences > Extensions* and add the following under
+   **Repository URLs**:
+
+       https://github.com/Palm1r/extension-registry/archive/refs/heads/qtcreator-changes-panel.tar.gz
+
+2. Find **Changes Panel** in the *Extensions* view, install it, and restart Qt
+   Creator when prompted.
+
+Once the plugin is merged into the official registry, it installs straight from
+the *Extensions* view with no extra URL — you can remove the one above then.
+
+### From a release archive
+
+1. Download the archive for your platform from the
+   [latest release](https://github.com/Palm1r/qt-creator-changes-panel/releases/latest):
+
+   | OS      | Architecture | Archive suffix        |
+   | ------- | ------------ | --------------------- |
+   | Windows | x64          | `-Windows-x64.7z`     |
+   | Windows | ARM64        | `-Windows-arm64.7z`   |
+   | Linux   | x64          | `-Linux-x64.7z`       |
+   | Linux   | ARM64        | `-Linux-arm64.7z`     |
+   | macOS   | universal    | `-macOS-universal.7z` |
+
+2. In the *Extensions* view, choose **Install Plugin…**, select the downloaded
+   `.7z`, and restart Qt Creator.
+
 ## How to Build
 
 Create a build directory and run
