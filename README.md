@@ -1,3 +1,5 @@
+[![Build plugin](https://github.com/Palm1r/qt-creator-changes-panel/actions/workflows/build_cmake.yml/badge.svg)](https://github.com/Palm1r/qt-creator-changes-panel/actions/workflows/build_cmake.yml)
+
 # Qt Creator Changes Panel
 
 A **Changes** pane for Qt Creator, beside "Open Documents" — everything you've
