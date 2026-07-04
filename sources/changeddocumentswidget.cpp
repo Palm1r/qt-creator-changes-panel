@@ -11,8 +11,10 @@
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/editormanager/editormanager.h>
+#include <coreplugin/editormanager/ieditor.h>
 #include <coreplugin/fileutils.h>
 #include <coreplugin/icore.h>
+#include <coreplugin/idocument.h>
 
 #include <utils/filepath.h>
 #include <utils/itemviews.h>
@@ -93,6 +95,41 @@ ChangedDocumentsWidget::ChangedDocumentsWidget(ChangedDocumentsModel *model)
         &QWidget::customContextMenuRequested,
         this,
         &ChangedDocumentsWidget::contextMenuRequested);
+
+    connect(
+        EditorManager::instance(),
+        &EditorManager::currentEditorChanged,
+        this,
+        &ChangedDocumentsWidget::updateCurrentItem);
+    connect(m_proxy, &QAbstractItemModel::rowsInserted, this, [this] {
+        updateCurrentItem(EditorManager::currentEditor());
+    });
+    connect(m_proxy, &QAbstractItemModel::rowsRemoved, this, [this] {
+        updateCurrentItem(EditorManager::currentEditor());
+    });
+    updateCurrentItem(EditorManager::currentEditor());
+}
+
+void ChangedDocumentsWidget::updateCurrentItem(Core::IEditor *editor)
+{
+    const FilePath filePath = editor && editor->document() ? editor->document()->filePath()
+                                                           : FilePath();
+    if (!filePath.isEmpty()) {
+        for (int row = 0; row < m_proxy->rowCount(); ++row) {
+            const QModelIndex idx = m_proxy->index(row, 0);
+            if (FilePath::fromVariant(idx.data(FilePathRole)) == filePath) {
+                if (idx == m_view->currentIndex())
+                    return;
+                m_view->setCurrentIndex(idx);
+                m_view->selectionModel()
+                    ->select(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                m_view->scrollTo(idx);
+                return;
+            }
+        }
+    }
+    m_view->selectionModel()->clearSelection();
+    m_view->selectionModel()->clearCurrentIndex();
 }
 
 QToolButton *ChangedDocumentsWidget::createMenuButton()

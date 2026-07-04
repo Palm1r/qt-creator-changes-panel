@@ -10,6 +10,10 @@ class QLabel;
 class QToolButton;
 QT_END_NAMESPACE
 
+namespace Core {
+class IEditor;
+}
+
 namespace Utils {
 class TreeView;
 }
@@ -31,6 +35,7 @@ public:
 private:
     void contextMenuRequested(const QPoint &pos);
     void updateEmptyState();
+    void updateCurrentItem(Core::IEditor *editor);
 
     Utils::TreeView *m_view = nullptr;
     ChangedDocumentsProxyModel *m_proxy = nullptr;
