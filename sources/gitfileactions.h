@@ -23,8 +23,8 @@ StageAction stageActionFor(Core::VcsFileState state, bool staged);
 bool isRevertable(Core::VcsFileState state);
 
 Utils::FilePath gitRepositoryFor(const Utils::FilePath &filePath);
-void stageFile(const Utils::FilePath &repository, const QString &relativePath);
-void unstageFile(
+bool stageFile(const Utils::FilePath &repository, const QString &relativePath);
+bool unstageFile(
     const Utils::FilePath &repository, const QString &relativePath, Core::VcsFileState state);
 bool checkoutFile(
     const Utils::FilePath &repository, const QString &relativePath, QString *errorMessage);

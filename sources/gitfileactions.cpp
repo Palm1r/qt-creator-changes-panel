@@ -27,9 +27,12 @@ StageAction stageActionFor(VcsFileState state, bool staged)
     case VcsFileState::Untracked:
     case VcsFileState::Deleted:
         return StageAction::Stage;
-    default:
+    case VcsFileState::Unknown:
+    case VcsFileState::Renamed:
+    case VcsFileState::Unmerged:
         return StageAction::None;
     }
+    return StageAction::None;
 }
 
 bool isRevertable(VcsFileState state)
@@ -46,16 +49,20 @@ FilePath gitRepositoryFor(const FilePath &filePath)
     return topLevel;
 }
 
-void stageFile(const FilePath &repository, const QString &relativePath)
+bool stageFile(const FilePath &repository, const QString &relativePath)
 {
-    Git::Internal::gitClient().addFile(repository, relativePath);
+    return Git::Internal::gitClient().synchronousAdd(repository, {relativePath});
 }
 
-void unstageFile(const FilePath &repository, const QString &relativePath, VcsFileState state)
+bool unstageFile(const FilePath &repository, const QString &relativePath, VcsFileState state)
 {
-    Git::Internal::gitClient().synchronousReset(repository, {relativePath});
-    if (state == VcsFileState::Added)
-        Git::Internal::gitClient().synchronousAdd(repository, {relativePath}, {"--intent-to-add"});
+    bool ok = Git::Internal::gitClient().synchronousReset(repository, {relativePath});
+    if (state == VcsFileState::Added) {
+        ok = Git::Internal::gitClient().synchronousAdd(repository, {relativePath},
+                                                       {"--intent-to-add"})
+             && ok;
+    }
+    return ok;
 }
 
 bool checkoutFile(const FilePath &repository, const QString &relativePath, QString *errorMessage)

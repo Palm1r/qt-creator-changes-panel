@@ -32,15 +32,15 @@ namespace ChangesPanel {
 
 constexpr int kRefreshDebounceMs = 200;
 
-static VcsFileState stateForStatusChar(QChar statusChar)
+static VcsFileState stateForStatusChar(char16_t statusChar)
 {
-    switch (statusChar.toLatin1()) {
-    case 'M': return VcsFileState::Modified;
-    case '?': return VcsFileState::Untracked;
-    case 'A': return VcsFileState::Added;
-    case 'R': return VcsFileState::Renamed;
-    case 'D': return VcsFileState::Deleted;
-    case 'U': return VcsFileState::Unmerged;
+    switch (statusChar) {
+    case u'M': return VcsFileState::Modified;
+    case u'?': return VcsFileState::Untracked;
+    case u'A': return VcsFileState::Added;
+    case u'R': return VcsFileState::Renamed;
+    case u'D': return VcsFileState::Deleted;
+    case u'U': return VcsFileState::Unmerged;
     default:  return VcsFileState::Unknown;
     }
 }
@@ -58,9 +58,9 @@ static GitStatus parseStatusOutput(const QString &output)
         if (line.size() <= 3)
             continue;
 
-        const VcsFileState indexState = stateForStatusChar(line.at(0));
-        const VcsFileState workTreeState = stateForStatusChar(line.at(1));
-        const VcsFileState state = std::max(indexState, workTreeState);
+        const VcsFileState indexState = stateForStatusChar(line.at(0).unicode());
+        const VcsFileState workTreeState = stateForStatusChar(line.at(1).unicode());
+        const VcsFileState state = (std::max)(indexState, workTreeState);
         if (state == VcsFileState::Unknown)
             continue;
 
@@ -235,8 +235,9 @@ void GitStatusTracker::runStatusCommand(const FilePath &repository)
     data.flags = VcsBase::RunFlag::NoOutput;
     data.commandHandler
         = [guard = QPointer(this), repository](const VcsBase::CommandResult &result) {
-              if (guard)
-                  guard->publishStatus(repository, parseStatusOutput(result.cleanedStdOut()));
+              if (!guard || result.result() != ProcessResult::FinishedWithSuccess)
+                  return;
+              guard->publishStatus(repository, parseStatusOutput(result.cleanedStdOut()));
           };
     Git::Internal::gitClient().enqueueCommand(data);
 }

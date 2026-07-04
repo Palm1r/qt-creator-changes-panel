@@ -33,6 +33,7 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
+#include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -152,12 +153,23 @@ void ChangedDocumentsWidget::connectSignals()
     const auto onRowsChanged = [this](const QModelIndex &parent) {
         if (!parent.isValid())
             m_view->expandAll();
-        handleModelChanged();
+        scheduleModelChangedUpdate();
     };
     connect(m_proxy, &QAbstractItemModel::rowsInserted, this, onRowsChanged);
     connect(m_proxy, &QAbstractItemModel::rowsRemoved, this, onRowsChanged);
     connect(m_proxy, &QAbstractItemModel::modelReset, this, [this] {
         m_view->expandAll();
+        scheduleModelChangedUpdate();
+    });
+}
+
+void ChangedDocumentsWidget::scheduleModelChangedUpdate()
+{
+    if (m_modelChangedPending)
+        return;
+    m_modelChangedPending = true;
+    QTimer::singleShot(0, this, [this] {
+        m_modelChangedPending = false;
         handleModelChanged();
     });
 }
@@ -273,10 +285,16 @@ void ChangedDocumentsWidget::applyStageAction(const QModelIndex &index, const Fi
         return;
     const QString relativePath = filePath.relativeChildPath(repository).path();
 
-    if (action == StageAction::Unstage)
-        unstageFile(repository, relativePath, state);
-    else
-        stageFile(repository, relativePath);
+    const bool ok = action == StageAction::Unstage ? unstageFile(repository, relativePath, state)
+                                                   : stageFile(repository, relativePath);
+    if (!ok) {
+        QMessageBox::warning(
+            ICore::dialogParent(),
+            action == StageAction::Unstage ? Tr::tr("Unstage Failed") : Tr::tr("Stage Failed"),
+            action == StageAction::Unstage
+                ? Tr::tr("Could not unstage \"%1\".").arg(filePath.fileName())
+                : Tr::tr("Could not stage \"%1\".").arg(filePath.fileName()));
+    }
     m_tracker->requestRefresh(repository);
 }
 

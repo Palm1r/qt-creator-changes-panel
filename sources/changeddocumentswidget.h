@@ -43,6 +43,7 @@ private:
     void setupLayout();
     void connectSignals();
 
+    void scheduleModelChangedUpdate();
     void handleModelChanged();
     void updateCurrentItem(Core::IEditor *editor);
     QModelIndex indexOfFile(const Utils::FilePath &filePath) const;
@@ -56,6 +57,7 @@ private:
     Utils::TreeView *m_view = nullptr;
     ChangedDocumentsProxyModel *m_proxy = nullptr;
     QLabel *m_emptyLabel = nullptr;
+    bool m_modelChangedPending = false;
 };
 
 } // namespace ChangesPanel

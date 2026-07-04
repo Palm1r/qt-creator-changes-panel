@@ -21,6 +21,8 @@ using namespace Utils;
 namespace ChangesPanel {
 
 constexpr int kDirectoryGap = 8;
+constexpr int kDirectoryRightPadding = 2;
+constexpr int kMinDirectoryWidth = 12;
 constexpr int kGroupHeaderExtraHeight = 4;
 
 static bool isGroupHeader(const QModelIndex &index)
@@ -114,8 +116,8 @@ void ChangedDocumentsDelegate::paintRelativeDirectory(QPainter *painter,
 
     const QFontMetrics metrics(opt.font);
     const int x = textRect.left() + metrics.horizontalAdvance(opt.text) + kDirectoryGap;
-    const int available = textRect.right() - x - 2;
-    if (available <= 12)
+    const int available = textRect.right() - x - kDirectoryRightPadding;
+    if (available <= kMinDirectoryWidth)
         return;
 
     painter->save();

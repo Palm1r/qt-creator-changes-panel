@@ -214,7 +214,9 @@ int ChangedDocumentsModel::groupFor(
     if (state == VcsFileState::Unmerged)
         return MergeGroup;
     const QString relativePath = filePath.relativeChildPath(repository).path();
-    return m_stagedFiles.value(repository).contains(relativePath) ? StagedGroup : UnstagedGroup;
+    const auto it = m_stagedFiles.constFind(repository);
+    return it != m_stagedFiles.cend() && it->contains(relativePath) ? StagedGroup
+                                                                    : UnstagedGroup;
 }
 
 bool ChangedDocumentsModel::tracksRepository(const FilePath &repository) const
@@ -238,8 +240,10 @@ void ChangedDocumentsModel::onStatusChanged(const FilePath &repository, const Gi
     removeVanishedEntries(repository, status.fileStates);
     for (auto it = status.fileStates.cbegin(); it != status.fileStates.cend(); ++it) {
         const QString &relativePath = it.key();
-        if (relativePath.isEmpty() || relativePath.endsWith('/'))
+        if (relativePath.isEmpty() || relativePath.endsWith('/')
+            || relativePath.startsWith("../")) {
             continue;
+        }
         const FilePath filePath = repository.pathAppended(relativePath);
         const QString relativeDir = filePath.parentDir().relativeChildPath(repository).path();
         setState(filePath, repository, relativeDir, it.value());
@@ -351,7 +355,10 @@ void ChangedDocumentsModel::insertEntry(int group, Entry entry)
 void ChangedDocumentsModel::applyStagedFiles(const FilePath &repository,
                                              const QSet<QString> &stagedFiles)
 {
-    if (m_stagedFiles.value(repository) == stagedFiles)
+    const auto it = m_stagedFiles.constFind(repository);
+    const bool unchanged = it != m_stagedFiles.cend() ? *it == stagedFiles
+                                                      : stagedFiles.isEmpty();
+    if (unchanged)
         return;
     m_stagedFiles.insert(repository, stagedFiles);
 
