@@ -3,6 +3,8 @@
 A **Changes** pane for Qt Creator, beside "Open Documents" — everything you've
 changed across your open projects, with diff, stage, and revert in the sidebar.
 
+<img width="1125" height="781" alt="Demo-Changes-Panel2" src="https://github.com/user-attachments/assets/d1e927f6-9e3a-46fd-b981-dd00614da445" />
+
 ## Features
 
 - **Live list** of VCS-changed files across all open projects.
