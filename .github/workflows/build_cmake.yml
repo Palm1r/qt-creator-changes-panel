@@ -54,7 +54,7 @@ jobs:
           }
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     - name: Checkout submodules
       id: git
       shell: cmake -P {0}
@@ -66,7 +66,7 @@ jobs:
         endif()
 
     - name: Download Ninja and CMake
-      uses: lukka/get-cmake@latest
+      uses: lukka/get-cmake@591817e96fcad43505fb4eae36172462abb3a42e # v4.3.3
       with:
         cmakeVersion: ${{ env.CMAKE_VERSION }}
         ninjaVersion: ${{ env.NINJA_VERSION }}
@@ -200,7 +200,7 @@ jobs:
 
     - name: Download Qt Creator
       id: qt_creator
-      uses: qt-creator/install-dev-package@v2.1
+      uses: qt-creator/install-dev-package@ca70993b6cc9cdcaa77689d527f54e35daa4ae7a # v2.3
       with:
         version: ${{ env.QT_CREATOR_VERSION }}
         unzip-to: 'qtcreator'
@@ -274,7 +274,7 @@ jobs:
         endif()
 
     - name: Upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         path: ./${{ env.PLUGIN_NAME }}-${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
         name: ${{ env.PLUGIN_NAME}}-${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
@@ -282,7 +282,7 @@ jobs:
     # The json is the same for all platforms, but we need to save one
     - name: Upload plugin json
       if: matrix.config.platform == 'linux_x64'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ env.PLUGIN_NAME }}.json
         path: ./build/build/${{ env.PLUGIN_NAME }}.json
@@ -295,7 +295,7 @@ jobs:
 
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
       with:
         path: release-with-dirs
 
@@ -306,7 +306,7 @@ jobs:
 
     - name: Create Release
       id: create_release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
