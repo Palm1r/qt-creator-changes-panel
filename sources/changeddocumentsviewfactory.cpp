@@ -25,7 +25,7 @@ ChangedDocumentsViewFactory::ChangedDocumentsViewFactory(ChangedDocumentsModel *
 Core::NavigationView ChangedDocumentsViewFactory::createWidget()
 {
     auto widget = new ChangedDocumentsWidget(m_model);
-    return {widget, {widget->createFilterButton()}};
+    return {widget, {widget->createMenuButton()}};
 }
 
 } // namespace ChangesPanel

@@ -26,7 +26,7 @@ class ChangedDocumentsWidget final : public QWidget
 public:
     explicit ChangedDocumentsWidget(ChangedDocumentsModel *model);
 
-    QToolButton *createFilterButton();
+    QToolButton *createMenuButton();
 
 private:
     void contextMenuRequested(const QPoint &pos);

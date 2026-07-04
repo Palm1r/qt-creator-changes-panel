@@ -51,3 +51,9 @@ where `<path_to_plugin>` is the path to the resulting plugin library in the buil
 
 You might want to add `-temporarycleansettings` (or `-tcs`) to ensure that the opened Qt Creator
 instance cannot mess with your user-global Qt Creator settings.
+
+## Third-party assets
+
+- `resources/icons/morevert*.png` — "more_vert" icon from
+  [Material Design Icons](https://github.com/google/material-design-icons)
+  by Google, licensed under the Apache License 2.0.

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/changespanel">
+        <file>icons/morevert.png</file>
+        <file>icons/morevert@2x.png</file>
+    </qresource>
+</RCC>

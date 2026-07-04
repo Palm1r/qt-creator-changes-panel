@@ -26,6 +26,7 @@ add_qtc_plugin(ChangesPanel
     .github/workflows/build_cmake.yml
     .github/workflows/README.md
     README.md
+    resources/changespanel.qrc
     sources/changeddocumentsmodel.cpp
     sources/changeddocumentsmodel.h
     sources/changeddocumentsproxymodel.cpp

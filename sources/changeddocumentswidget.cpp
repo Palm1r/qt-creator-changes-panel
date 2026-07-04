@@ -8,6 +8,8 @@
 #include "changespanelconstants.h"
 #include "changespaneltr.h"
 
+#include <coreplugin/actionmanager/actioncontainer.h>
+#include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/fileutils.h>
 #include <coreplugin/icore.h>
@@ -16,8 +18,9 @@
 #include <utils/itemviews.h>
 #include <utils/stringutils.h>
 #include <utils/stylehelper.h>
+#include <utils/icon.h>
+#include <utils/theme/theme.h>
 #include <utils/treemodel.h>
-#include <utils/utilsicons.h>
 
 #include <QHeaderView>
 #include <QLabel>
@@ -92,15 +95,18 @@ ChangedDocumentsWidget::ChangedDocumentsWidget(ChangedDocumentsModel *model)
         &ChangedDocumentsWidget::contextMenuRequested);
 }
 
-QToolButton *ChangedDocumentsWidget::createFilterButton()
+QToolButton *ChangedDocumentsWidget::createMenuButton()
 {
     auto button = new QToolButton;
-    button->setIcon(Icons::FILTER.icon());
-    button->setToolTip(Tr::tr("Filter Changed Files"));
+    static const QIcon menuIcon
+        = Icon({{":/changespanel/icons/morevert.png", Theme::IconsBaseColor}}, Icon::Tint).icon();
+    button->setIcon(menuIcon);
+    button->setToolTip(Tr::tr("Changes Menu"));
     button->setPopupMode(QToolButton::InstantPopup);
     button->setProperty(StyleHelper::C_NO_ARROW, true);
 
     auto menu = new QMenu(button);
+
     QAction *showUntracked = menu->addAction(Tr::tr("Show Untracked Files"));
     showUntracked->setCheckable(true);
     showUntracked->setChecked(m_proxy->showUntracked());
@@ -108,6 +114,14 @@ QToolButton *ChangedDocumentsWidget::createFilterButton()
         m_proxy->setShowUntracked(checked);
         ICore::settings()->setValue(Constants::SHOW_UNTRACKED_KEY, checked);
     });
+
+    if (ActionContainer *gitContainer = ActionManager::actionContainer(Utils::Id("Git"))) {
+        if (QMenu *gitMenu = gitContainer->menu(); gitMenu && !gitMenu->actions().isEmpty()) {
+            menu->addSeparator();
+            menu->addActions(gitMenu->actions());
+        }
+    }
+
     button->setMenu(menu);
     return button;
 }
