@@ -1,6 +1,6 @@
 {
     "Id" : "changespanel",
-    "Name" : "ChangesPanel",
+    "Name" : "Changes Panel",
     "Version" : "0.5.0",
     "CompatVersion" : "${IDE_VERSION_COMPAT}",
     "Vendor" : "Petr Mironychev",
