@@ -1,25 +1,17 @@
 # Qt Creator Changes Panel
 
-A Qt Creator plugin that adds a **Changes** navigation pane — a sibling of
-"Open Documents" that lists the files currently modified according to version control
-(git status: modified, added, deleted, renamed, unmerged, untracked) across the open
-projects' repositories.
+A **Changes** pane for Qt Creator, beside "Open Documents" — everything you've
+changed across your open projects, with diff, stage, and revert in the sidebar.
 
 ## Features
 
-- Lists all VCS-changed files of the open projects, updated live (same data source
-  that colors files in the Projects tree).
-- Files are grouped into collapsible **Merge Changes**, **Staged Changes** and
-  **Unstaged Changes** sections with file counts.
-- Hover actions on each file: diff, revert (or recover a deleted file),
-  stage/unstage.
-- File name on the left, its directory (relative to the repository) dimmed on the right.
-- Files are colored by their VCS state, with the state shown in the tooltip.
-- Single click opens the file in the editor.
-- Context menu: Open, Open Containing Folder, Copy Full Path.
-- Panel menu: show/hide untracked files (persisted in settings) plus the Git menu
-  actions.
-- Activation shortcut: `Meta+P` (macOS) / `Alt+P`.
+- **Live list** of VCS-changed files across all open projects.
+- **Collapsible groups** — *Merge* / *Staged* / *Unstaged* — with counts, colored
+  by state.
+- **Actions**: click to open; hover to diff, stage/unstage, or revert; right-click
+  for Open Containing Folder and Copy Full Path.
+- **Panel menu**: toggle untracked files plus Git actions; activate the pane with
+  `Meta+P` / `Alt+P`.
 
 The pane relies on Qt Creator's VCS status monitoring: make sure
 **"Show file status"** is enabled in *Preferences > Version Control > General*
