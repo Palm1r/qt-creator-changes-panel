@@ -19,13 +19,17 @@ namespace ChangesPanel {
 
 StageAction stageActionFor(VcsFileState state, bool staged)
 {
-    if (staged || state == VcsFileState::Added)
+    if (staged)
         return StageAction::Unstage;
-    if (state == VcsFileState::Modified || state == VcsFileState::Untracked
-        || state == VcsFileState::Deleted) {
+    switch (state) {
+    case VcsFileState::Added:
+    case VcsFileState::Modified:
+    case VcsFileState::Untracked:
+    case VcsFileState::Deleted:
         return StageAction::Stage;
+    default:
+        return StageAction::None;
     }
-    return StageAction::None;
 }
 
 bool isRevertable(VcsFileState state)

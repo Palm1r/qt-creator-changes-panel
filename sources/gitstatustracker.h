@@ -29,6 +29,8 @@ struct GitStatus
 {
     Core::FileStateHash fileStates;
     QSet<QString> stagedFiles;
+
+    bool operator==(const GitStatus &other) const = default;
 };
 
 class GitStatusTracker final : public QObject
@@ -49,12 +51,17 @@ private:
     void onProjectRemoved(ProjectExplorer::Project *project);
     void onDocumentSaved(Core::IDocument *document);
     void onGitDirChanged(const Utils::FilePath &gitDir);
+    void onFileStatesCleared(const Utils::FilePath &repository);
+    void onApplicationStateChanged(Qt::ApplicationState state);
     void updateGitDirWatches();
     void runStatusCommand(const Utils::FilePath &repository);
+    void publishStatus(const Utils::FilePath &repository, const GitStatus &status);
 
     Utils::FileSystemWatcher *m_gitDirWatcher = nullptr;
     QHash<Utils::FilePath, Utils::FilePath> m_repositoriesByGitDir;
+    QHash<Utils::FilePath, GitStatus> m_lastStatus;
     QSet<Utils::FilePath> m_pendingRefresh;
+    QSet<Utils::FilePath> m_deferredRefresh;
 };
 
 } // namespace ChangesPanel

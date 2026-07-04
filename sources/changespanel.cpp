@@ -42,6 +42,7 @@ public:
         }
         m_viewFactory.reset();
         disconnect(Core::VcsManager::instance(), nullptr, m_model, nullptr);
+        disconnect(Core::VcsManager::instance(), nullptr, m_tracker, nullptr);
         disconnect(ProjectExplorer::ProjectManager::instance(), nullptr, m_model, nullptr);
         disconnect(ProjectExplorer::ProjectManager::instance(), nullptr, m_tracker, nullptr);
         return SynchronousShutdown;

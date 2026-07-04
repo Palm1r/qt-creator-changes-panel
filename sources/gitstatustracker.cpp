@@ -17,10 +17,12 @@
 #include <vcsbase/vcscommand.h>
 #include <vcsbase/vcsenums.h>
 
+#include <QGuiApplication>
 #include <QPointer>
 #include <QTimer>
 
 #include <algorithm>
+#include <utility>
 
 using namespace Core;
 using namespace ProjectExplorer;
@@ -102,6 +104,16 @@ GitStatusTracker::GitStatusTracker(QObject *parent)
         &EditorManager::saved,
         this,
         [this](IDocument *document, IDocument::SaveOption) { onDocumentSaved(document); });
+    connect(
+        VcsManager::instance(),
+        &VcsManager::clearFileState,
+        this,
+        &GitStatusTracker::onFileStatesCleared);
+    connect(
+        qGuiApp,
+        &QGuiApplication::applicationStateChanged,
+        this,
+        &GitStatusTracker::onApplicationStateChanged);
 
     for (Project *project : ProjectManager::projects())
         onProjectAdded(project);
@@ -109,14 +121,38 @@ GitStatusTracker::GitStatusTracker(QObject *parent)
 
 void GitStatusTracker::requestRefresh(const FilePath &repository)
 {
+    if (qGuiApp->applicationState() != Qt::ApplicationActive) {
+        m_deferredRefresh.insert(repository);
+        return;
+    }
     if (m_pendingRefresh.contains(repository))
         return;
     m_pendingRefresh.insert(repository);
 
     QTimer::singleShot(kRefreshDebounceMs, this, [this, repository] {
         m_pendingRefresh.remove(repository);
+        if (qGuiApp->applicationState() != Qt::ApplicationActive) {
+            m_deferredRefresh.insert(repository);
+            return;
+        }
         runStatusCommand(repository);
     });
+}
+
+void GitStatusTracker::onApplicationStateChanged(Qt::ApplicationState state)
+{
+    if (state != Qt::ApplicationActive)
+        return;
+    const QSet<FilePath> deferred = std::exchange(m_deferredRefresh, {});
+    for (const FilePath &repository : deferred)
+        requestRefresh(repository);
+}
+
+void GitStatusTracker::onFileStatesCleared(const FilePath &repository)
+{
+    m_lastStatus.remove(repository);
+    if (isWatching(repository))
+        requestRefresh(repository);
 }
 
 bool GitStatusTracker::isWatching(const FilePath &repository) const
@@ -176,6 +212,8 @@ void GitStatusTracker::updateGitDirWatches()
             ++it;
         } else {
             m_gitDirWatcher->removeDirectory(it.key());
+            m_lastStatus.remove(it.value());
+            m_deferredRefresh.remove(it.value());
             it = m_repositoriesByGitDir.erase(it);
         }
     }
@@ -183,6 +221,7 @@ void GitStatusTracker::updateGitDirWatches()
         if (!m_repositoriesByGitDir.contains(it.key())) {
             m_repositoriesByGitDir.insert(it.key(), it.value());
             m_gitDirWatcher->addDirectory(it.key(), FileSystemWatcher::WatchAllChanges);
+            requestRefresh(it.value());
         }
     }
 }
@@ -191,16 +230,24 @@ void GitStatusTracker::runStatusCommand(const FilePath &repository)
 {
     VcsBase::VcsCommandData data;
     data.workingDirectory = repository;
-    data.arguments
-        = {"-c", "core.quotePath=false", "status", "-s", "--porcelain", "--ignore-submodules"};
+    data.arguments = {"-c", "core.quotePath=false", "status", "-s", "--porcelain",
+                      "--untracked-files=all", "--ignore-submodules"};
     data.flags = VcsBase::RunFlag::NoOutput;
     data.commandHandler
         = [guard = QPointer(this), repository](const VcsBase::CommandResult &result) {
-              if (!guard)
-                  return;
-              emit guard->statusChanged(repository, parseStatusOutput(result.cleanedStdOut()));
+              if (guard)
+                  guard->publishStatus(repository, parseStatusOutput(result.cleanedStdOut()));
           };
     Git::Internal::gitClient().enqueueCommand(data);
+}
+
+void GitStatusTracker::publishStatus(const FilePath &repository, const GitStatus &status)
+{
+    const auto it = m_lastStatus.constFind(repository);
+    if (it != m_lastStatus.cend() && *it == status)
+        return;
+    m_lastStatus.insert(repository, status);
+    emit statusChanged(repository, status);
 }
 
 } // namespace ChangesPanel

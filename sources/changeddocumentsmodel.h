@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <coreplugin/vcsfilestate.h>
+#include <coreplugin/vcsmanager.h>
 
 #include <utils/filepath.h>
 
@@ -79,7 +79,9 @@ private:
     bool tracksRepository(const Utils::FilePath &repository) const;
 
     void onStatusChanged(const Utils::FilePath &repository, const GitStatus &status);
-    void updateFileStates(const Utils::FilePath &repository, const QStringList &files);
+    void removeVanishedEntries(
+        const Utils::FilePath &repository, const Core::FileStateHash &states);
+    void onVcsFileStatesChanged(const Utils::FilePath &repository);
     void setState(
         const Utils::FilePath &filePath,
         const Utils::FilePath &repository,

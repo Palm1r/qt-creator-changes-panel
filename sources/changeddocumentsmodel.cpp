@@ -35,7 +35,7 @@ ChangedDocumentsModel::ChangedDocumentsModel(GitStatusTracker *tracker, QObject 
         VcsManager::instance(),
         &VcsManager::updateFileState,
         this,
-        &ChangedDocumentsModel::updateFileStates);
+        &ChangedDocumentsModel::onVcsFileStatesChanged);
     connect(
         VcsManager::instance(),
         &VcsManager::clearFileState,
@@ -233,20 +233,36 @@ void ChangedDocumentsModel::onStatusChanged(const FilePath &repository, const Gi
 {
     if (!m_tracker->isWatching(repository) && !tracksRepository(repository))
         return;
-    VcsManager::updateModifiedFiles(repository, status.fileStates);
-    applyStagedFiles(repository, status.stagedFiles);
-}
 
-void ChangedDocumentsModel::updateFileStates(const FilePath &repository, const QStringList &files)
-{
-    for (const QString &relativePath : files) {
-        if (relativePath.isEmpty())
+    applyStagedFiles(repository, status.stagedFiles);
+    removeVanishedEntries(repository, status.fileStates);
+    for (auto it = status.fileStates.cbegin(); it != status.fileStates.cend(); ++it) {
+        const QString &relativePath = it.key();
+        if (relativePath.isEmpty() || relativePath.endsWith('/'))
             continue;
         const FilePath filePath = repository.pathAppended(relativePath);
         const QString relativeDir = filePath.parentDir().relativeChildPath(repository).path();
-        setState(filePath, repository, relativeDir, VcsManager::fileState(filePath));
+        setState(filePath, repository, relativeDir, it.value());
     }
+}
 
+void ChangedDocumentsModel::removeVanishedEntries(const FilePath &repository,
+                                                  const Core::FileStateHash &states)
+{
+    for (int group = 0; group < GroupCount; ++group) {
+        for (int i = int(m_entries.at(group).size()) - 1; i >= 0; --i) {
+            const Entry &entry = m_entries.at(group).at(i);
+            if (entry.repository != repository)
+                continue;
+            const QString relativePath = entry.filePath.relativeChildPath(repository).path();
+            if (!states.contains(relativePath))
+                removeEntry(group, i);
+        }
+    }
+}
+
+void ChangedDocumentsModel::onVcsFileStatesChanged(const FilePath &repository)
+{
     m_tracker->requestRefresh(repository);
 }
 
@@ -303,13 +319,15 @@ void ChangedDocumentsModel::revalidate()
 {
     for (int group = 0; group < GroupCount; ++group) {
         for (int i = int(m_entries.at(group).size()) - 1; i >= 0; --i) {
-            const Entry &entry = m_entries.at(group).at(i);
-            const VcsFileState state = VcsManager::fileState(entry.filePath);
-            if (state == VcsFileState::Unknown)
+            if (!m_tracker->isWatching(m_entries.at(group).at(i).repository))
                 removeEntry(group, i);
-            else if (entry.state != state)
-                setState(entry.filePath, entry.repository, entry.relativeDirectory, state);
         }
+    }
+    for (auto it = m_stagedFiles.begin(); it != m_stagedFiles.end();) {
+        if (m_tracker->isWatching(it.key()))
+            ++it;
+        else
+            it = m_stagedFiles.erase(it);
     }
 }
 
