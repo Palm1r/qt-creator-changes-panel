@@ -9,11 +9,16 @@ projects' repositories.
 
 - Lists all VCS-changed files of the open projects, updated live (same data source
   that colors files in the Projects tree).
+- Files are grouped into collapsible **Merge Changes**, **Staged Changes** and
+  **Unstaged Changes** sections with file counts.
+- Hover actions on each file: diff, revert (or recover a deleted file),
+  stage/unstage.
 - File name on the left, its directory (relative to the repository) dimmed on the right.
 - Files are colored by their VCS state, with the state shown in the tooltip.
 - Single click opens the file in the editor.
 - Context menu: Open, Open Containing Folder, Copy Full Path.
-- Toolbar filter to show/hide untracked files (persisted in settings).
+- Panel menu: show/hide untracked files (persisted in settings) plus the Git menu
+  actions.
 - Activation shortcut: `Meta+P` (macOS) / `Alt+P`.
 
 The pane relies on Qt Creator's VCS status monitoring: make sure

@@ -14,6 +14,8 @@ class ChangedDocumentsProxyModel final : public QSortFilterProxyModel
 public:
     using QSortFilterProxyModel::QSortFilterProxyModel;
 
+    void setSourceModel(QAbstractItemModel *sourceModel) final;
+
     void setShowUntracked(bool show);
     bool showUntracked() const;
 
@@ -21,6 +23,8 @@ protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const final;
 
 private:
+    bool acceptsFile(int sourceRow, const QModelIndex &sourceParent) const;
+
     bool m_showUntracked = true;
 };
 

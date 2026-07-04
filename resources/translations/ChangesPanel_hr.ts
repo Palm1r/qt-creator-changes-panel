@@ -24,12 +24,28 @@ File states are provided by the version control system for the open projects. Ma
 Stanja datoteka pruža sustav za kontrolu verzija za otvorene projekte. Provjerite je li &quot;Prikaži stanje datoteka&quot; omogućeno u Postavke &gt; Kontrola verzija &gt; Općenito.</translation>
     </message>
     <message>
-        <source>Filter Changed Files</source>
-        <translation>Filtriraj promijenjene datoteke</translation>
+        <source>Changes Menu</source>
+        <translation>Izbornik promjena</translation>
     </message>
     <message>
         <source>Show Untracked Files</source>
         <translation>Prikaži nepraćene datoteke</translation>
+    </message>
+    <message>
+        <source>Confirm File Changes</source>
+        <translation>Potvrdi promjene datoteke</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Undo &lt;b&gt;all&lt;/b&gt; changes to the file &quot;%1&quot;?&lt;/p&gt;&lt;p&gt;Note: These changes will be lost.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;Poništiti &lt;b&gt;sve&lt;/b&gt; promjene u datoteci &quot;%1&quot;?&lt;/p&gt;&lt;p&gt;Napomena: Ove će promjene biti izgubljene.&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>Revert Failed</source>
+        <translation>Vraćanje nije uspjelo</translation>
+    </message>
+    <message>
+        <source>Could not revert &quot;%1&quot;.</source>
+        <translation>Nije moguće vratiti &quot;%1&quot;.</translation>
     </message>
     <message>
         <source>Open</source>
@@ -42,6 +58,38 @@ Stanja datoteka pruža sustav za kontrolu verzija za otvorene projekte. Provjeri
     <message>
         <source>Copy Full Path</source>
         <translation>Kopiraj punu putanju</translation>
+    </message>
+    <message>
+        <source>Merge Changes</source>
+        <translation>Promjene spajanja</translation>
+    </message>
+    <message>
+        <source>Staged Changes</source>
+        <translation>Pripremljene promjene</translation>
+    </message>
+    <message>
+        <source>Unstaged Changes</source>
+        <translation>Nepripremljene promjene</translation>
+    </message>
+    <message>
+        <source>Diff &quot;%1&quot;</source>
+        <translation>Usporedi &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Revert All Changes to &quot;%1&quot;</source>
+        <translation>Vrati sve promjene u &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Recover &quot;%1&quot;</source>
+        <translation>Oporavi &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Stage &quot;%1&quot;</source>
+        <translation>Pripremi &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Unstage &quot;%1&quot;</source>
+        <translation>Poništi pripremu za &quot;%1&quot;</translation>
     </message>
 </context>
 </TS>
