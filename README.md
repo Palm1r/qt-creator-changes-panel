@@ -57,8 +57,55 @@ where `<path_to_plugin>` is the path to the resulting plugin library in the buil
 You might want to add `-temporarycleansettings` (or `-tcs`) to ensure that the opened Qt Creator
 instance cannot mess with your user-global Qt Creator settings.
 
+## Support the development
+
+If you find this project helpful, there are several ways you can support it:
+
+- **Report issues** — if you encounter any bugs or have suggestions for
+  improvements, please
+  [open an issue](https://github.com/Palm1r/qt-creator-changes-panel/issues).
+- **Contribute** — feel free to submit pull requests with bug fixes or new
+  features.
+- **Spread the word** — star the
+  [GitHub repository](https://github.com/Palm1r/qt-creator-changes-panel) and
+  share the plugin with your fellow developers.
+- **Financial support** — if you'd like to support the development financially,
+  you can make a donation using one of the following:
+  - PayPal: [paypal.me/palm1r](https://www.paypal.com/paypalme/palm1r)
+  - Bitcoin (BTC): `bc1qndq7f0mpnlya48vk7kugvyqj5w89xrg4wzg68t`
+  - Ethereum (ETH): `0xA5e8c37c94b24e25F9f1f292a01AF55F03099D8D`
+  - Litecoin (LTC): `ltc1qlrxnk30s2pcjchzx4qrxvdjt5gzuervy5mv0vy`
+  - USDT (TRC20): `THdZrE7d6epW6ry98GA3MLXRjha1DjKtUx`
+
+## For Contributors
+
+### Code style
+
+- C++: use the `.clang-format` configuration in the project root.
+- Run formatting before submitting pull requests.
+
 ## Third-party assets
 
 - `resources/icons/morevert*.png` — "more_vert" icon from
   [Material Design Icons](https://github.com/google/material-design-icons)
   by Google, licensed under the Apache License 2.0.
+
+## License
+
+Licensed under the [MIT License](LICENSE).
+
+## Qt Creator components and attributions
+
+Qt Creator Changes Panel is a plugin for Qt Creator and incorporates certain
+components (plugin templates, API headers, and related boilerplate) originating
+from Qt Creator, which are copyright (C) The Qt Company Ltd.
+
+These components are provided by The Qt Company under the GNU General Public
+License version 3, annotated with The Qt Company GPL Exception 1.0. This
+exception permits the development and distribution of Qt Creator plugins under
+licenses of the plugin author's own choosing, notwithstanding the GPL's general
+linking requirements. It is this exception that allows Qt Creator Changes Panel
+to be distributed under the MIT license.
+
+The original copyright and license notices of The Qt Company are preserved in
+the relevant source files and must not be removed.
