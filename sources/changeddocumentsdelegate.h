@@ -27,6 +27,8 @@ private:
                                 const QModelIndex &index) const;
     void paintActionButton(QPainter *painter, const QStyleOptionViewItem &option,
                            const QModelIndex &index) const;
+    void paintGroupActionButton(QPainter *painter, const QStyleOptionViewItem &option,
+                                const QModelIndex &index) const;
 
     QPersistentModelIndex m_hoveredIndex;
 };

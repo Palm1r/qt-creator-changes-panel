@@ -3,15 +3,19 @@
 
 #pragma once
 
-#include <coreplugin/vcsfilestate.h>
+#include "gitstatusparser.h"
 
+#include <utils/filepath.h>
+#include <utils/result.h>
+
+#include <QList>
+#include <QObject>
 #include <QString>
 
-namespace Utils {
-class FilePath;
-}
-
 namespace ChangesPanel {
+
+class GitCommands;
+class GitStatusTracker;
 
 enum class StageAction {
     None,
@@ -19,14 +23,44 @@ enum class StageAction {
     Unstage,
 };
 
-StageAction stageActionFor(Core::VcsFileState state, bool staged);
-bool isRevertable(Core::VcsFileState state);
+enum class FileEntryAction {
+    None,
+    OpenEditor,
+    ShowDiff,
+};
 
-Utils::FilePath gitRepositoryFor(const Utils::FilePath &filePath);
-bool stageFile(const Utils::FilePath &repository, const QString &relativePath);
-bool unstageFile(
-    const Utils::FilePath &repository, const QString &relativePath, Core::VcsFileState state);
-bool checkoutFile(
-    const Utils::FilePath &repository, const QString &relativePath, QString *errorMessage);
+struct StageableFile
+{
+    Utils::FilePath repository;
+    QString relativePath;
+    FileState state = FileState::Unknown;
+};
+
+StageAction stageActionFor(FileState state, bool staged);
+QString stageActionToolTip(StageAction action, const QString &fileName);
+QString stageActionFailureTitle(StageAction action);
+bool isRevertable(FileState state);
+
+FileEntryAction diffColumnActionFor(FileState state);
+FileEntryAction rowClickActionFor(FileState state);
+QString fileEntryActionToolTip(FileEntryAction action, const QString &fileName);
+
+class GitFileActions final : public QObject
+{
+    Q_OBJECT
+
+public:
+    GitFileActions(GitCommands &git, GitStatusTracker &tracker, QObject *parent = nullptr);
+
+    Utils::Result<> applyStageAction(StageAction action, const QList<StageableFile> &files);
+    Utils::Result<> revertFile(const Utils::FilePath &repository, const QString &relativePath);
+
+    void diffFile(const Utils::FilePath &repository, const QString &relativePath, bool staged);
+    void openInExternalGitClient(const Utils::FilePath &repository);
+
+private:
+    GitCommands &m_git;
+    GitStatusTracker &m_tracker;
+};
 
 } // namespace ChangesPanel

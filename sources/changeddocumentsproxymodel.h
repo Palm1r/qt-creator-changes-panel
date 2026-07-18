@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <utils/filepath.h>
+
 #include <QSortFilterProxyModel>
 
 namespace ChangesPanel {
@@ -16,16 +18,18 @@ public:
 
     void setSourceModel(QAbstractItemModel *sourceModel) final;
 
-    void setShowUntracked(bool show);
-    bool showUntracked() const;
+    void setRepositoryFilter(const Utils::FilePath &repository);
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const final;
 
 private:
     bool acceptsFile(int sourceRow, const QModelIndex &sourceParent) const;
+    void scheduleRefilter();
 
-    bool m_showUntracked = true;
+    QList<QMetaObject::Connection> m_sourceConnections;
+    bool m_refilterPending = false;
+    Utils::FilePath m_repository;
 };
 
 } // namespace ChangesPanel

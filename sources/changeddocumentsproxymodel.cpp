@@ -7,32 +7,43 @@
 
 #include <QTimer>
 
+#include <utility>
+
 namespace ChangesPanel {
 
 void ChangedDocumentsProxyModel::setSourceModel(QAbstractItemModel *sourceModel)
 {
+    for (const QMetaObject::Connection &connection : std::as_const(m_sourceConnections))
+        disconnect(connection);
+    m_sourceConnections.clear();
+
     QSortFilterProxyModel::setSourceModel(sourceModel);
-
-    const auto refilterGroupsAfterSourceChange = [this] {
-        QTimer::singleShot(0, this, &ChangedDocumentsProxyModel::invalidateRowsFilter);
-    };
-    connect(sourceModel, &QAbstractItemModel::rowsInserted,
-            this, refilterGroupsAfterSourceChange);
-    connect(sourceModel, &QAbstractItemModel::rowsRemoved,
-            this, refilterGroupsAfterSourceChange);
-}
-
-void ChangedDocumentsProxyModel::setShowUntracked(bool show)
-{
-    if (m_showUntracked == show)
+    if (!sourceModel)
         return;
-    m_showUntracked = show;
-    invalidateRowsFilter();
+
+    m_sourceConnections.append(connect(sourceModel, &QAbstractItemModel::rowsInserted,
+                                       this, &ChangedDocumentsProxyModel::scheduleRefilter));
+    m_sourceConnections.append(connect(sourceModel, &QAbstractItemModel::rowsRemoved,
+                                       this, &ChangedDocumentsProxyModel::scheduleRefilter));
 }
 
-bool ChangedDocumentsProxyModel::showUntracked() const
+void ChangedDocumentsProxyModel::scheduleRefilter()
 {
-    return m_showUntracked;
+    if (m_refilterPending)
+        return;
+    m_refilterPending = true;
+    QTimer::singleShot(0, this, [this] {
+        m_refilterPending = false;
+        invalidateRowsFilter();
+    });
+}
+
+void ChangedDocumentsProxyModel::setRepositoryFilter(const Utils::FilePath &repository)
+{
+    if (m_repository == repository)
+        return;
+    m_repository = repository;
+    invalidateRowsFilter();
 }
 
 bool ChangedDocumentsProxyModel::filterAcceptsRow(int sourceRow,
@@ -52,11 +63,8 @@ bool ChangedDocumentsProxyModel::filterAcceptsRow(int sourceRow,
 
 bool ChangedDocumentsProxyModel::acceptsFile(int sourceRow, const QModelIndex &sourceParent) const
 {
-    if (m_showUntracked)
-        return true;
     const QModelIndex idx = sourceModel()->index(sourceRow, 0, sourceParent);
-    return Core::VcsFileState(idx.data(ChangedDocumentsModel::StateRole).toInt())
-           != Core::VcsFileState::Untracked;
+    return m_repository.isEmpty() || repositoryAt(idx) == m_repository;
 }
 
 } // namespace ChangesPanel

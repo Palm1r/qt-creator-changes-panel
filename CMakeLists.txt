@@ -44,13 +44,13 @@ add_qtc_plugin(ChangesPanel
     sources/changeddocumentsproxymodel.h
     sources/changeddocumentsviewfactory.cpp
     sources/changeddocumentsviewfactory.h
-    sources/changeddocumentswidget.cpp
-    sources/changeddocumentswidget.h
     sources/changespanel.cpp
     sources/changespanelconstants.h
     sources/changespanelsettings.cpp
     sources/changespanelsettings.h
     sources/changespaneltr.h
+    sources/changespanelwidget.cpp
+    sources/changespanelwidget.h
     sources/gitcommands.cpp
     sources/gitcommands.h
     sources/gitfileactions.cpp
@@ -59,6 +59,8 @@ add_qtc_plugin(ChangesPanel
     sources/gitstatusparser.h
     sources/gitstatustracker.cpp
     sources/gitstatustracker.h
+    sources/repositorysectionwidget.cpp
+    sources/repositorysectionwidget.h
 )
 
 target_include_directories(ChangesPanel PRIVATE sources)

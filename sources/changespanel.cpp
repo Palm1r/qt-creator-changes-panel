@@ -3,12 +3,13 @@
 
 #include "changeddocumentsmodel.h"
 #include "changeddocumentsviewfactory.h"
+#include "changespanelsettings.h"
+#include "changespaneltr.h"
+#include "gitcommands.h"
+#include "gitfileactions.h"
 #include "gitstatustracker.h"
 
 #include <coreplugin/icore.h>
-#include <coreplugin/vcsmanager.h>
-
-#include <projectexplorer/projectmanager.h>
 
 #include <extensionsystem/iplugin.h>
 
@@ -16,6 +17,10 @@
 #include <QTranslator>
 
 #include <memory>
+
+#ifdef WITH_TESTS
+#include "gitstatusparsertest.h"
+#endif
 
 namespace ChangesPanel {
 
@@ -29,9 +34,20 @@ public:
     {
         installTranslator();
 
-        m_tracker = new GitStatusTracker(this);
-        m_model = new ChangedDocumentsModel(m_tracker, this);
-        m_viewFactory = std::make_unique<ChangedDocumentsViewFactory>(m_model, m_tracker);
+#ifdef WITH_TESTS
+        addTest<GitStatusParserTest>();
+#endif
+
+        if (settings().enabled())
+            setupPanel();
+
+        connect(&settings().enabled, &Utils::BaseAspect::changed, this, [] {
+            if (Core::ICore::askForRestart(
+                    Tr::tr("Enabling or disabling the Changes panel takes effect after "
+                           "restarting Qt Creator."))) {
+                Core::ICore::restart();
+            }
+        });
     }
 
     ShutdownFlag aboutToShutdown() final
@@ -40,15 +56,23 @@ public:
             QCoreApplication::removeTranslator(m_translator);
             m_translator = nullptr;
         }
-        m_viewFactory.reset();
-        disconnect(Core::VcsManager::instance(), nullptr, m_model, nullptr);
-        disconnect(Core::VcsManager::instance(), nullptr, m_tracker, nullptr);
-        disconnect(ProjectExplorer::ProjectManager::instance(), nullptr, m_model, nullptr);
-        disconnect(ProjectExplorer::ProjectManager::instance(), nullptr, m_tracker, nullptr);
+        if (m_viewFactory) {
+            m_viewFactory.reset();
+            m_tracker->detachFromExternalSources();
+        }
         return SynchronousShutdown;
     }
 
 private:
+    void setupPanel()
+    {
+        m_tracker = new GitStatusTracker(gitCommands(), this);
+        m_model = new ChangedDocumentsModel(m_tracker, this);
+        m_actions = new GitFileActions(gitCommands(), *m_tracker, this);
+        m_viewFactory
+            = std::make_unique<ChangedDocumentsViewFactory>(m_model, m_tracker, m_actions);
+    }
+
     void installTranslator()
     {
         auto translator = new QTranslator(this);
@@ -66,6 +90,7 @@ private:
 
     GitStatusTracker *m_tracker = nullptr;
     ChangedDocumentsModel *m_model = nullptr;
+    GitFileActions *m_actions = nullptr;
     QTranslator *m_translator = nullptr;
     std::unique_ptr<ChangedDocumentsViewFactory> m_viewFactory;
 };
