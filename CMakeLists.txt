@@ -48,6 +48,8 @@ add_qtc_plugin(ChangesPanel
     sources/changeddocumentswidget.h
     sources/changespanel.cpp
     sources/changespanelconstants.h
+    sources/changespanelsettings.cpp
+    sources/changespanelsettings.h
     sources/changespaneltr.h
     sources/gitcommands.cpp
     sources/gitcommands.h
