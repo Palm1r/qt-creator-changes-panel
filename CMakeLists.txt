@@ -6,6 +6,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
 find_package(Qt6 6.9 REQUIRED COMPONENTS Widgets LinguistTools)
@@ -13,6 +14,13 @@ find_package(Qt6 6.9 REQUIRED COMPONENTS Widgets LinguistTools)
 qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES
     en cs zh_CN zh_TW da de fr hr ja pl ru sl sv uk
 )
+
+option(WITH_TESTS "Builds with tests" NO)
+
+if(WITH_TESTS)
+  find_package(Qt6 REQUIRED COMPONENTS Test)
+  enable_testing()
+endif()
 
 add_qtc_plugin(ChangesPanel
   PLUGIN_DEPENDS
@@ -43,9 +51,25 @@ add_qtc_plugin(ChangesPanel
     sources/changespaneltr.h
     sources/gitfileactions.cpp
     sources/gitfileactions.h
+    sources/gitstatusparser.cpp
+    sources/gitstatusparser.h
     sources/gitstatustracker.cpp
     sources/gitstatustracker.h
 )
+
+target_include_directories(ChangesPanel PRIVATE sources)
+
+extend_qtc_plugin(ChangesPanel
+  CONDITION WITH_TESTS
+  DEPENDS Qt::Test
+  SOURCES
+    tests/gitstatusparsertest.cpp
+    tests/gitstatusparsertest.h
+)
+
+if(WITH_TESTS)
+  target_include_directories(ChangesPanel PRIVATE tests)
+endif()
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
 find_program(QtCreatorExecutable
