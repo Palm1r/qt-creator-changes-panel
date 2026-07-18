@@ -49,6 +49,8 @@ add_qtc_plugin(ChangesPanel
     sources/changespanel.cpp
     sources/changespanelconstants.h
     sources/changespaneltr.h
+    sources/gitcommands.cpp
+    sources/gitcommands.h
     sources/gitfileactions.cpp
     sources/gitfileactions.h
     sources/gitstatusparser.cpp
