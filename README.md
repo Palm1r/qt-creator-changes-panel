@@ -1,4 +1,5 @@
 [![Build plugin](https://github.com/Palm1r/qt-creator-changes-panel/actions/workflows/build_cmake.yml/badge.svg)](https://github.com/Palm1r/qt-creator-changes-panel/actions/workflows/build_cmake.yml)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/qt-creator-changes-panel/total?color=41%2C173%2C71&label=downloads)
 
 # Qt Creator Changes Panel
 
