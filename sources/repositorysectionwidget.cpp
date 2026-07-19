@@ -200,6 +200,7 @@ void RepositorySectionWidget::setupColumns()
            &settings().showStageButton,
            &settings().showRevertButton,
            &settings().showGitClientButton,
+           &settings().fileClickAction,
            &settings().gitClientFileCommand};
     for (Utils::BaseAspect *aspect : repaintAspects) {
         connect(aspect, &Utils::BaseAspect::changed, this,

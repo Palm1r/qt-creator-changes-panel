@@ -26,7 +26,7 @@ struct RowActionZone
 
 struct RowActionZones
 {
-    QVarLengthArray<RowActionZone, 3> zones;
+    QVarLengthArray<RowActionZone, 4> zones;
     bool groupHeader = false;
     FileState state = FileState::Unknown;
     bool staged = false;
