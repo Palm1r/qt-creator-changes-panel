@@ -201,7 +201,7 @@ QToolButton *ChangesPanelWidget::createGitClientButton()
         } else if (!hasRepository) {
             button->setToolTip(Tr::tr("No repository is open."));
         } else {
-            button->setToolTip(Tr::tr("Open in Git Client"));
+            button->setToolTip(Tr::tr("Open Repository in Git Client"));
         }
     };
     updateEnabled();

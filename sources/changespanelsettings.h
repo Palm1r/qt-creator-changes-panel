@@ -14,10 +14,13 @@ public:
 
     enum FileClickAction : int { OpenDiff, OpenInEditor };
 
+    bool hasGitClientFileCommand() const;
+
     Utils::BoolAspect enabled = {this};
     Utils::BoolAspect showDiffButton = {this};
     Utils::BoolAspect showStageButton = {this};
     Utils::BoolAspect showRevertButton = {this};
+    Utils::BoolAspect showGitClientButton = {this};
     Utils::SelectionAspect fileClickAction = {this};
     Utils::StringAspect gitClientRepositoryCommand = {this};
     Utils::StringAspect gitClientFileCommand = {this};

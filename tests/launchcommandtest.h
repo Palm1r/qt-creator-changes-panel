@@ -14,6 +14,7 @@ class LaunchCommandTest final : public QObject
 private slots:
     void testRepositorySubstitution();
     void testFileSubstitution();
+    void testRelativeFileSubstitution();
     void testPlaceholderInsideArgument();
     void testPathsWithSpacesNeedNoQuoting();
     void testCommandWithoutPlaceholders();

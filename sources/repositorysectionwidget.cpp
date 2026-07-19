@@ -6,6 +6,7 @@
 #include "changeddocumentsdelegate.h"
 #include "changeddocumentsmodel.h"
 #include "changeddocumentsproxymodel.h"
+#include "changespanelconstants.h"
 #include "changespanelsettings.h"
 #include "changespaneltr.h"
 #include "gitfileactions.h"
@@ -187,15 +188,21 @@ void RepositorySectionWidget::setupColumns()
     header->setMinimumSectionSize(0);
     header->setSectionResizeMode(ChangedDocumentsModel::FileNameColumn, QHeaderView::Stretch);
 
-    for (int column : {int(ChangedDocumentsModel::RevertColumn),
+    for (int column : {int(ChangedDocumentsModel::GitClientColumn),
+                       int(ChangedDocumentsModel::RevertColumn),
                        int(ChangedDocumentsModel::DiffColumn),
                        int(ChangedDocumentsModel::StageColumn)}) {
         m_view->setColumnHidden(column, true);
     }
 
-    for (Utils::BoolAspect *button :
-         {&settings().showDiffButton, &settings().showStageButton, &settings().showRevertButton}) {
-        connect(button, &Utils::BaseAspect::changed, this,
+    const std::initializer_list<Utils::BaseAspect *> repaintAspects
+        = {&settings().showDiffButton,
+           &settings().showStageButton,
+           &settings().showRevertButton,
+           &settings().showGitClientButton,
+           &settings().gitClientFileCommand};
+    for (Utils::BaseAspect *aspect : repaintAspects) {
+        connect(aspect, &Utils::BaseAspect::changed, this,
                 [this] { m_view->viewport()->update(); });
     }
 }
@@ -351,6 +358,13 @@ void RepositorySectionWidget::triggerZoneAction(const QModelIndex &index,
     case ChangedDocumentsModel::StageColumn:
         handleStageClicked(index);
         return;
+    case ChangedDocumentsModel::GitClientColumn: {
+        const FilePath repository = repositoryAt(index);
+        if (repository.isEmpty())
+            return;
+        m_actions->openFileInGitClient(repository, relativePathAt(index));
+        return;
+    }
     case ChangedDocumentsModel::FileNameColumn:
     case ChangedDocumentsModel::ColumnCount:
         return;
@@ -612,11 +626,15 @@ void RepositorySectionWidget::contextMenuRequested(const QPoint &pos)
     menu.addAction(Tr::tr("Copy Full Path"), this, [filePath] {
         setClipboardAndSelection(filePath.toUserOutput());
     });
-    if (!settings().gitClientFileCommand().trimmed().isEmpty()) {
+    if (settings().hasGitClientFileCommand()) {
         const FilePath repository = repositoryAt(index);
         const QString relativePath = relativePathAt(index);
-        menu.addAction(Tr::tr("Open in Git Client"), this, [this, repository, relativePath] {
+        menu.addAction(Tr::tr("Open File in Git Client"), this, [this, repository, relativePath] {
             m_actions->openFileInGitClient(repository, relativePath);
+        });
+    } else {
+        menu.addAction(Tr::tr("Open File in Git Client..."), this, [] {
+            Core::ICore::showSettings(Utils::Id(Constants::SETTINGS_PAGE_ID));
         });
     }
 

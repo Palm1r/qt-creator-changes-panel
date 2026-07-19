@@ -16,6 +16,7 @@ QStringList expandedLaunchCommand(
     const QString &command,
     Utils::OsType os,
     const QString &repositoryPath,
-    const std::optional<QString> &filePath = std::nullopt);
+    const std::optional<QString> &filePath = std::nullopt,
+    const std::optional<QString> &relativeFilePath = std::nullopt);
 
 } // namespace ChangesPanel

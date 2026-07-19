@@ -43,6 +43,14 @@ static const QIcon &revertActionIcon()
     return icon;
 }
 
+static const QIcon &gitClientActionIcon()
+{
+    static const QIcon icon
+        = Icon({{":/changespanel/icons/gitclient.png", Theme::IconsBaseColor}}, Icon::Tint)
+              .icon();
+    return icon;
+}
+
 static QIcon stageActionIcon(StageAction action)
 {
     static const QIcon stageIcon = Icons::PLUS.icon();
@@ -70,6 +78,8 @@ static QIcon actionIcon(ChangedDocumentsModel::Column column, FileState state, b
         return isRevertable(state) ? revertActionIcon() : QIcon();
     case ChangedDocumentsModel::StageColumn:
         return stageActionIcon(stageActionFor(state, staged));
+    case ChangedDocumentsModel::GitClientColumn:
+        return gitClientActionIcon();
     case ChangedDocumentsModel::FileNameColumn:
     case ChangedDocumentsModel::ColumnCount:
         break;
@@ -101,7 +111,7 @@ RowActionZones rowActionZones(
 {
     RowActionZones row;
     row.groupHeader = isGroupHeader(index);
-    QVarLengthArray<ChangedDocumentsModel::Column, 3> columns;
+    QVarLengthArray<ChangedDocumentsModel::Column, 4> columns;
     if (row.groupHeader) {
         row.groupStageAction = groupStageActionAt(index);
         if (settings().showRevertButton() && groupHasRevertableAt(index))
@@ -111,6 +121,8 @@ RowActionZones rowActionZones(
     } else {
         row.state = fileStateAt(index);
         row.staged = stagedAt(index);
+        if (settings().showGitClientButton() && settings().hasGitClientFileCommand())
+            columns.append(ChangedDocumentsModel::GitClientColumn);
         if (settings().showRevertButton() && isRevertable(row.state))
             columns.append(ChangedDocumentsModel::RevertColumn);
         if (settings().showDiffButton()

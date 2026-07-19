@@ -232,6 +232,8 @@ QVariant ChangedDocumentsModel::toolTipData(const Entry &entry, int group, int c
             stageActionFor(entry.state, group == StagedGroup), entry.filePath.fileName());
         return toolTip.isEmpty() ? QVariant() : QVariant(toolTip);
     }
+    if (column == GitClientColumn)
+        return Tr::tr("Open \"%1\" in Git Client").arg(entry.filePath.fileName());
     QString toolTip = entry.filePath.toUserOutput();
     const QString description = VcsManager::fileStateDescription(toCoreState(entry.state));
     if (!description.isEmpty())

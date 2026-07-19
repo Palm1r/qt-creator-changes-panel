@@ -32,6 +32,17 @@ void LaunchCommandTest::testFileSubstitution()
              "/home/user/project/src/main.cpp"}));
 }
 
+void LaunchCommandTest::testRelativeFileSubstitution()
+{
+    const QStringList arguments = expandedLaunchCommand(
+        "smerge log %{relativeFile}",
+        OsTypeLinux,
+        "/home/user/project",
+        QString("/home/user/project/src/main.cpp"),
+        QString("src/main.cpp"));
+    QCOMPARE(arguments, QStringList({"smerge", "log", "src/main.cpp"}));
+}
+
 void LaunchCommandTest::testPlaceholderInsideArgument()
 {
     const QStringList arguments

@@ -3,6 +3,7 @@
 
 #include "changespanelsettings.h"
 
+#include "changespanelconstants.h"
 #include "changespaneltr.h"
 
 #include <coreplugin/dialogs/ioptionspage.h>
@@ -17,6 +18,11 @@ ChangesPanelSettings &settings()
 {
     static ChangesPanelSettings theSettings;
     return theSettings;
+}
+
+bool ChangesPanelSettings::hasGitClientFileCommand() const
+{
+    return !gitClientFileCommand().trimmed().isEmpty();
 }
 
 ChangesPanelSettings::ChangesPanelSettings()
@@ -44,6 +50,12 @@ ChangesPanelSettings::ChangesPanelSettings()
     showRevertButton.setDefaultValue(true);
     showRevertButton.setLabelText(Tr::tr("Revert"));
 
+    showGitClientButton.setSettingsKey("ShowGitClientButton");
+    showGitClientButton.setDefaultValue(true);
+    showGitClientButton.setLabelText(Tr::tr("Open in Git client"));
+    showGitClientButton.setToolTip(
+        Tr::tr("Shown only while an open file command is configured below."));
+
     fileClickAction.setSettingsKey("FileClickAction");
     fileClickAction.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
     fileClickAction.setUseDataAsSavedValue();
@@ -61,18 +73,21 @@ ChangesPanelSettings::ChangesPanelSettings()
     gitClientRepositoryCommand.setSettingsKey("ExternalGitClient");
     gitClientRepositoryCommand.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     gitClientRepositoryCommand.setLabelText(Tr::tr("Open repository command:"));
+    gitClientRepositoryCommand.setPlaceHolderText(QStringLiteral("smerge %{repo}"));
     gitClientRepositoryCommand.setToolTip(
-        Tr::tr("Run by the panel's \"Open in Git Client\" button, from the repository "
-               "directory. %{repo} is replaced with the repository path; the command "
-               "is run exactly as written."));
+        Tr::tr("Run by the panel's \"Open Repository in Git Client\" toolbar button, "
+               "from the repository directory. %{repo} is replaced with the repository "
+               "path; the command is run exactly as written."));
 
     gitClientFileCommand.setSettingsKey("ExternalGitClientFile");
     gitClientFileCommand.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     gitClientFileCommand.setLabelText(Tr::tr("Open file command:"));
+    gitClientFileCommand.setPlaceHolderText(QStringLiteral("smerge log %{relativeFile}"));
     gitClientFileCommand.setToolTip(
-        Tr::tr("Run by a file's \"Open in Git Client\" context menu entry, from the "
-               "repository directory. %{repo} and %{file} are replaced with absolute "
-               "paths. Leave empty to hide the menu entry."));
+        Tr::tr("Run by a file's \"Open File in Git Client\" context menu entry and "
+               "hover button, from the repository directory. %{repo} and %{file} are "
+               "replaced with absolute paths, %{relativeFile} with the file's path "
+               "relative to the repository."));
 
     setLayouter([this] {
         using namespace Layouting;
@@ -84,6 +99,7 @@ ChangesPanelSettings::ChangesPanelSettings()
                     showDiffButton,
                     showStageButton,
                     showRevertButton,
+                    showGitClientButton,
                 },
             },
             Group {
@@ -111,7 +127,7 @@ class ChangesPanelSettingsPage final : public Core::IOptionsPage
 public:
     ChangesPanelSettingsPage()
     {
-        setId("ChangesPanel.Settings");
+        setId(Constants::SETTINGS_PAGE_ID);
         setDisplayName(Tr::tr("Changes Panel"));
         setCategory(VcsBase::Constants::VCS_SETTINGS_CATEGORY);
         setSettingsProvider([] { return &settings(); });

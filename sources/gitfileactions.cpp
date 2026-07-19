@@ -180,12 +180,22 @@ void GitFileActions::diffAllChanges(const FilePath &repository,
 static void runGitClient(
     const QString &configuredCommand,
     const FilePath &repository,
-    const std::optional<QString> &filePath)
+    const std::optional<QString> &relativeFilePath = std::nullopt)
 {
+    std::optional<QString> filePath = std::nullopt;
+    if (relativeFilePath)
+        filePath = repository.pathAppended(*relativeFilePath).path();
     QStringList arguments = expandedLaunchCommand(
-        configuredCommand, HostOsInfo::hostOs(), repository.path(), filePath);
-    if (arguments.isEmpty())
+        configuredCommand, HostOsInfo::hostOs(), repository.path(), filePath, relativeFilePath);
+    if (arguments.isEmpty()) {
+        if (!configuredCommand.trimmed().isEmpty()) {
+            QMessageBox::warning(
+                Core::ICore::dialogParent(),
+                Tr::tr("Open in Git Client"),
+                Tr::tr("Could not parse the command \"%1\".").arg(configuredCommand.trimmed()));
+        }
         return;
+    }
     CommandLine command(FilePath::fromUserInput(arguments.takeFirst()));
     command.addArgs(arguments);
     if (!Process::startDetached(command, repository)) {
@@ -198,15 +208,12 @@ static void runGitClient(
 
 void GitFileActions::openRepositoryInGitClient(const FilePath &repository)
 {
-    runGitClient(settings().gitClientRepositoryCommand(), repository, std::nullopt);
+    runGitClient(settings().gitClientRepositoryCommand(), repository);
 }
 
 void GitFileActions::openFileInGitClient(const FilePath &repository, const QString &relativePath)
 {
-    runGitClient(
-        settings().gitClientFileCommand(),
-        repository,
-        repository.pathAppended(relativePath).path());
+    runGitClient(settings().gitClientFileCommand(), repository, relativePath);
 }
 
 } // namespace ChangesPanel

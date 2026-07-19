@@ -36,6 +36,7 @@ public:
     };
     enum Column : int {
         FileNameColumn,
+        GitClientColumn,
         RevertColumn,
         DiffColumn,
         StageColumn,
