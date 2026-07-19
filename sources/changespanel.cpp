@@ -20,6 +20,7 @@
 
 #ifdef WITH_TESTS
 #include "changeddocumentsmodeltest.h"
+#include "gitfileactionstest.h"
 #include "gitstatusparsertest.h"
 #include "launchcommandtest.h"
 #endif
@@ -38,6 +39,7 @@ public:
 
 #ifdef WITH_TESTS
         addTest<ChangedDocumentsModelTest>();
+        addTest<GitFileActionsTest>();
         addTest<GitStatusParserTest>();
         addTest<LaunchCommandTest>();
 #endif
@@ -83,7 +85,13 @@ private:
             m_model,
             &ChangedDocumentsModel::clearRepository);
 
-        m_actions = new GitFileActions(gitCommands(), *m_tracker, this);
+        m_actions = new GitFileActions(gitCommands(), this);
+        connect(
+            m_actions,
+            &GitFileActions::refreshRequested,
+            m_tracker,
+            &GitStatusTracker::requestRefresh);
+
         m_viewFactory
             = std::make_unique<ChangedDocumentsViewFactory>(m_model, m_tracker, m_actions);
     }

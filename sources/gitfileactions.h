@@ -15,7 +15,6 @@
 namespace ChangesPanel {
 
 class GitCommands;
-class GitStatusTracker;
 
 enum class StageAction {
     None,
@@ -50,7 +49,7 @@ class GitFileActions final : public QObject
     Q_OBJECT
 
 public:
-    GitFileActions(GitCommands &git, GitStatusTracker &tracker, QObject *parent = nullptr);
+    explicit GitFileActions(GitCommands &git, QObject *parent = nullptr);
 
     Utils::Result<> applyStageAction(StageAction action, const QList<StageableFile> &files);
     Utils::Result<> revertFile(const Utils::FilePath &repository, const QString &relativePath);
@@ -64,9 +63,11 @@ public:
     void openRepositoryInGitClient(const Utils::FilePath &repository);
     void openFileInGitClient(const Utils::FilePath &repository, const QString &relativePath);
 
+signals:
+    void refreshRequested(const Utils::FilePath &repository);
+
 private:
     GitCommands &m_git;
-    GitStatusTracker &m_tracker;
 };
 
 } // namespace ChangesPanel

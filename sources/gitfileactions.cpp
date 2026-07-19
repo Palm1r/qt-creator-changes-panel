@@ -6,7 +6,6 @@
 #include "changespanelsettings.h"
 #include "changespaneltr.h"
 #include "gitcommands.h"
-#include "gitstatustracker.h"
 #include "launchcommand.h"
 
 #include <coreplugin/icore.h>
@@ -104,10 +103,9 @@ static QString stageActionFailureText(StageAction action, const QList<StageableF
                                           : Tr::tr("Could not stage all files.");
 }
 
-GitFileActions::GitFileActions(GitCommands &git, GitStatusTracker &tracker, QObject *parent)
+GitFileActions::GitFileActions(GitCommands &git, QObject *parent)
     : QObject(parent)
     , m_git(git)
-    , m_tracker(tracker)
 {}
 
 Result<> GitFileActions::applyStageAction(StageAction action, const QList<StageableFile> &files)
@@ -137,7 +135,7 @@ Result<> GitFileActions::applyStageAction(StageAction action, const QList<Stagea
                                     : m_git.stageFiles(it.key(), batch.paths);
         if (!result)
             errors.append(result.error());
-        m_tracker.requestRefresh(it.key());
+        emit refreshRequested(it.key());
     }
     if (errors.isEmpty())
         return ResultOk;
@@ -154,7 +152,7 @@ Result<> GitFileActions::revertFiles(const FilePath &repository, const QStringLi
     if (relativePaths.isEmpty())
         return ResultOk;
     const Result<> result = m_git.checkoutFiles(repository, relativePaths);
-    m_tracker.requestRefresh(repository);
+    emit refreshRequested(repository);
     if (result)
         return result;
     if (relativePaths.size() == 1) {

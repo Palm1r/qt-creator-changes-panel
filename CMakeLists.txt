@@ -73,6 +73,9 @@ extend_qtc_plugin(ChangesPanel
   SOURCES
     tests/changeddocumentsmodeltest.cpp
     tests/changeddocumentsmodeltest.h
+    tests/fakegitcommands.h
+    tests/gitfileactionstest.cpp
+    tests/gitfileactionstest.h
     tests/gitstatusparsertest.cpp
     tests/gitstatusparsertest.h
     tests/launchcommandtest.cpp
