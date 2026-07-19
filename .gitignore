@@ -36,6 +36,9 @@ Thumbs.db
 /.qmake.stash
 **/.qmlls.ini
 
+# Local machine-specific CMake presets
+CMakeUserPresets.json
+
 # qtcreator generated files
 *.pro.user*
 *.qbs.user*

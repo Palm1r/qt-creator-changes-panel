@@ -54,6 +54,29 @@ combined binary and development package (Windows / Linux), or to the `Qt Creator
 directory of a combined binary and development package (macOS), and `<path_to_plugin_source>` is the
 relative or absolute path to this plugin directory.
 
+Or with CMake presets: create a `CMakeUserPresets.json` that inherits the
+`default` preset and sets `CMAKE_PREFIX_PATH` to your Qt Creator dev package,
+then run `cmake --preset <your-preset> && cmake --build --preset <your-preset>`.
+For example:
+
+    {
+      "version": 4,
+      "configurePresets": [
+        {
+          "name": "local",
+          "inherits": "default",
+          "cacheVariables": {
+            "CMAKE_PREFIX_PATH": "<path_to_qtcreator>;<path_to_qt>"
+          }
+        }
+      ],
+      "buildPresets": [
+        { "name": "local", "configurePreset": "local" }
+      ]
+    }
+
+The file is machine-specific and gitignored.
+
 ## How to Run
 
 From the command line run
