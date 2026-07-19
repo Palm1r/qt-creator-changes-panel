@@ -82,23 +82,32 @@ ChangesPanelWidget::ChangesPanelWidget(
 
 void ChangesPanelWidget::reconcileSections()
 {
-    for (RepositorySectionWidget *section : std::as_const(m_sections)) {
-        section->hide();
-        section->deleteLater();
+    const QList<FilePath> wanted = m_tracker->repositories();
+
+    for (auto it = m_sections.begin(); it != m_sections.end();) {
+        if (wanted.contains(it.key())) {
+            ++it;
+            continue;
+        }
+        it.value()->hide();
+        it.value()->deleteLater();
+        it = m_sections.erase(it);
     }
-    m_sections.clear();
+
     while (QLayoutItem *item = m_contentLayout->takeAt(0))
         delete item;
 
-    const QList<FilePath> wanted = m_tracker->repositories();
     const bool singleRepo = wanted.size() == 1;
 
     for (const FilePath &repository : wanted) {
-        auto section
-            = new RepositorySectionWidget(repository, m_model, m_tracker, m_actions, m_content);
-        m_sections.insert(repository, section);
-        connect(section, &RepositorySectionWidget::visibleRowsChanged,
-                this, &ChangesPanelWidget::scheduleSelectionSync);
+        RepositorySectionWidget *section = m_sections.value(repository);
+        if (!section) {
+            section = new RepositorySectionWidget(
+                repository, m_model, m_tracker, m_actions, m_content);
+            m_sections.insert(repository, section);
+            connect(section, &RepositorySectionWidget::visibleRowsChanged,
+                    this, &ChangesPanelWidget::scheduleSelectionSync);
+        }
         m_contentLayout->addWidget(section, singleRepo ? 1 : 0);
     }
     if (!singleRepo)
