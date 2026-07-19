@@ -71,6 +71,8 @@ extend_qtc_plugin(ChangesPanel
   CONDITION WITH_TESTS
   DEPENDS Qt::Test
   SOURCES
+    tests/changeddocumentsmodeltest.cpp
+    tests/changeddocumentsmodeltest.h
     tests/gitstatusparsertest.cpp
     tests/gitstatusparsertest.h
     tests/launchcommandtest.cpp

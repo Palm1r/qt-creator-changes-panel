@@ -19,6 +19,7 @@
 #include <memory>
 
 #ifdef WITH_TESTS
+#include "changeddocumentsmodeltest.h"
 #include "gitstatusparsertest.h"
 #include "launchcommandtest.h"
 #endif
@@ -36,6 +37,7 @@ public:
         installTranslator();
 
 #ifdef WITH_TESTS
+        addTest<ChangedDocumentsModelTest>();
         addTest<GitStatusParserTest>();
         addTest<LaunchCommandTest>();
 #endif
@@ -69,7 +71,18 @@ private:
     void setupPanel()
     {
         m_tracker = new GitStatusTracker(gitCommands(), this);
-        m_model = new ChangedDocumentsModel(m_tracker, this);
+        m_model = new ChangedDocumentsModel(this);
+        connect(
+            m_tracker,
+            &GitStatusTracker::statusChanged,
+            m_model,
+            &ChangedDocumentsModel::applyStatus);
+        connect(
+            m_tracker,
+            &GitStatusTracker::repositoryCleared,
+            m_model,
+            &ChangedDocumentsModel::clearRepository);
+
         m_actions = new GitFileActions(gitCommands(), *m_tracker, this);
         m_viewFactory
             = std::make_unique<ChangedDocumentsViewFactory>(m_model, m_tracker, m_actions);

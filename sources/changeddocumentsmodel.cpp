@@ -5,7 +5,6 @@
 
 #include "changespaneltr.h"
 #include "gitfileactions.h"
-#include "gitstatustracker.h"
 
 #include <coreplugin/vcsmanager.h>
 
@@ -56,20 +55,9 @@ static const GroupInfo &groupInfo(int group)
     return infos[group];
 }
 
-ChangedDocumentsModel::ChangedDocumentsModel(GitStatusTracker *tracker, QObject *parent)
+ChangedDocumentsModel::ChangedDocumentsModel(QObject *parent)
     : QAbstractItemModel(parent)
-{
-    connect(
-        tracker,
-        &GitStatusTracker::statusChanged,
-        this,
-        &ChangedDocumentsModel::onStatusChanged);
-    connect(
-        tracker,
-        &GitStatusTracker::repositoryCleared,
-        this,
-        &ChangedDocumentsModel::clearRepository);
-}
+{}
 
 QModelIndex ChangedDocumentsModel::index(int row, int column, const QModelIndex &parent) const
 {
@@ -273,7 +261,7 @@ int ChangedDocumentsModel::groupFor(
                                                                     : UnstagedGroup;
 }
 
-void ChangedDocumentsModel::onStatusChanged(const FilePath &repository, const GitStatus &status)
+void ChangedDocumentsModel::applyStatus(const FilePath &repository, const GitStatus &status)
 {
     applyStagedFiles(repository, status.stagedFiles);
     removeVanishedEntries(repository, status.fileStates);

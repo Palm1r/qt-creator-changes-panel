@@ -18,8 +18,6 @@ namespace ChangesPanel {
 
 enum class StageAction;
 
-class GitStatusTracker;
-
 class ChangedDocumentsModel final : public QAbstractItemModel
 {
     Q_OBJECT
@@ -49,7 +47,7 @@ public:
         GroupCount,
     };
 
-    explicit ChangedDocumentsModel(GitStatusTracker *tracker, QObject *parent = nullptr);
+    explicit ChangedDocumentsModel(QObject *parent = nullptr);
 
     QModelIndex index(int row, int column, const QModelIndex &parent = {}) const final;
     QModelIndex parent(const QModelIndex &child) const final;
@@ -59,6 +57,9 @@ public:
 
     QModelIndex indexForFile(const Utils::FilePath &filePath) const;
     bool hasRevertableEntries(int group, const Utils::FilePath &repository) const;
+
+    void applyStatus(const Utils::FilePath &repository, const GitStatus &status);
+    void clearRepository(const Utils::FilePath &repository);
 
 private:
     struct Entry
@@ -88,11 +89,9 @@ private:
         const Utils::FilePath &repository,
         FileState state) const;
 
-    void onStatusChanged(const Utils::FilePath &repository, const GitStatus &status);
     void removeVanishedEntries(
         const Utils::FilePath &repository, const FileStateMap &states);
     void setState(Entry entry);
-    void clearRepository(const Utils::FilePath &repository);
     void removeEntry(int group, int row);
     void insertEntry(int group, Entry entry);
     template<typename Predicate> void removeEntriesIf(Predicate predicate);
