@@ -3,9 +3,15 @@
 
 #pragma once
 
+#include "changeddocumentsmodel.h"
+
 #include <utils/filepath.h>
 
+#include <QModelIndex>
+#include <QPersistentModelIndex>
 #include <QWidget>
+
+#include <optional>
 
 QT_BEGIN_NAMESPACE
 class QEvent;
@@ -22,7 +28,6 @@ namespace ChangesPanel {
 enum class FileEntryAction;
 enum class StageAction;
 
-class ChangedDocumentsModel;
 class ChangedDocumentsProxyModel;
 class ChangedDocumentsDelegate;
 class GitFileActions;
@@ -72,6 +77,22 @@ private:
     void handleStageClicked(const QModelIndex &index);
     void handleGroupStageClicked(const QModelIndex &group, StageAction action);
     void handleRevertClicked(const QModelIndex &index);
+    void handleGroupRevertClicked(const QModelIndex &group);
+
+    struct ZoneHit
+    {
+        QPersistentModelIndex index;
+        ChangedDocumentsModel::Column column = ChangedDocumentsModel::ColumnCount;
+
+        friend bool operator==(const ZoneHit &a, const ZoneHit &b)
+        {
+            return a.index == b.index && a.column == b.column;
+        }
+    };
+    std::optional<ZoneHit> actionZoneAt(const QPoint &pos) const;
+    void triggerZoneAction(const QModelIndex &index, ChangedDocumentsModel::Column column);
+    bool handleViewportEvent(QEvent *event);
+    void updateHoverZone(const std::optional<ZoneHit> &hit);
 
     Utils::FilePath m_repository;
     ChangedDocumentsModel *m_model = nullptr;
@@ -87,6 +108,9 @@ private:
     QLabel *m_nameLabel = nullptr;
     QLabel *m_pathLabel = nullptr;
     QLabel *m_submoduleLabel = nullptr;
+
+    std::optional<ZoneHit> m_pressedZone = std::nullopt;
+    std::optional<ZoneHit> m_hoverZone = std::nullopt;
 
     bool m_collapsed = false;
     bool m_userToggled = false;

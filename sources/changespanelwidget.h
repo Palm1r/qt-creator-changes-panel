@@ -8,6 +8,8 @@
 #include <QHash>
 #include <QWidget>
 
+#include <functional>
+
 QT_BEGIN_NAMESPACE
 class QLabel;
 class QScrollArea;
@@ -36,12 +38,19 @@ public:
 
     QToolButton *createMenuButton();
     QToolButton *createGitClientButton();
+    QToolButton *createDiffButton();
 
 private:
     void reconcileSections();
     void updateEmptyState();
     void updateCurrentItem(Core::IEditor *editor);
     void scheduleSelectionSync();
+    void runForRepository(
+        QToolButton *button,
+        const std::function<void(const Utils::FilePath &)> &action,
+        const std::function<bool(const Utils::FilePath &)> &accept = {});
+    void diffAllChanges(const Utils::FilePath &repository) const;
+    bool repositoryHasChanges(const Utils::FilePath &repository) const;
 
     ChangedDocumentsModel *m_model = nullptr;
     GitStatusTracker *m_tracker = nullptr;

@@ -3,19 +3,53 @@
 
 #pragma once
 
-#include <QPersistentModelIndex>
+#include "changeddocumentsmodel.h"
+#include "gitfileactions.h"
+
+#include <QFontMetrics>
+#include <QIcon>
+#include <QModelIndex>
+#include <QPoint>
+#include <QRect>
 #include <QStyledItemDelegate>
+#include <QVarLengthArray>
 
 namespace ChangesPanel {
 
 constexpr int kTrailingPadding = 10;
+
+struct RowActionZone
+{
+    ChangedDocumentsModel::Column column = ChangedDocumentsModel::ColumnCount;
+    QRect rect;
+};
+
+struct RowActionZones
+{
+    QVarLengthArray<RowActionZone, 3> zones;
+    bool groupHeader = false;
+    FileState state = FileState::Unknown;
+    bool staged = false;
+    StageAction groupStageAction = StageAction::None;
+
+    const RowActionZone *zoneAt(const QPoint &pos) const;
+};
+
+RowActionZones rowActionZones(
+    const QRect &rowRect, const QFontMetrics &metrics, const QModelIndex &index);
+
+const QIcon &diffActionIcon();
 
 class ChangedDocumentsDelegate final : public QStyledItemDelegate
 {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
 
-    void setHoveredIndex(const QModelIndex &index);
+    void setHoverPosition(const QPoint &pos);
+    void clearHoverPosition();
+
+    bool helpEvent(QHelpEvent *event, QAbstractItemView *view,
+                   const QStyleOptionViewItem &option, const QModelIndex &index) final;
 
 private:
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
@@ -25,12 +59,12 @@ private:
 
     void paintRelativeDirectory(QPainter *painter, const QStyleOptionViewItem &option,
                                 const QModelIndex &index) const;
-    void paintActionButton(QPainter *painter, const QStyleOptionViewItem &option,
-                           const QModelIndex &index) const;
-    void paintGroupActionButton(QPainter *painter, const QStyleOptionViewItem &option,
-                                const QModelIndex &index) const;
+    void paintActionOverlay(QPainter *painter, const QStyleOptionViewItem &option,
+                            const QModelIndex &index) const;
 
-    QPersistentModelIndex m_hoveredIndex;
+    static constexpr QPoint kNoHoverPosition{-1, -1};
+
+    QPoint m_hoverPosition = kNoHoverPosition;
 };
 
 } // namespace ChangesPanel

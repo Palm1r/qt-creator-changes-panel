@@ -146,18 +146,35 @@ Result<> GitFileActions::applyStageAction(StageAction action, const QList<Stagea
 
 Result<> GitFileActions::revertFile(const FilePath &repository, const QString &relativePath)
 {
-    const Result<> result = m_git.checkoutFiles(repository, {relativePath});
+    return revertFiles(repository, {relativePath});
+}
+
+Result<> GitFileActions::revertFiles(const FilePath &repository, const QStringList &relativePaths)
+{
+    if (relativePaths.isEmpty())
+        return ResultOk;
+    const Result<> result = m_git.checkoutFiles(repository, relativePaths);
     m_tracker.requestRefresh(repository);
     if (result)
         return result;
-    return ResultError(Tr::tr("Could not revert \"%1\": %2")
-                           .arg(repository.pathAppended(relativePath).fileName(),
-                                result.error()));
+    if (relativePaths.size() == 1) {
+        return ResultError(Tr::tr("Could not revert \"%1\": %2")
+                               .arg(repository.pathAppended(relativePaths.first()).fileName(),
+                                    result.error()));
+    }
+    return ResultError(Tr::tr("Could not revert all files: %1").arg(result.error()));
 }
 
 void GitFileActions::diffFile(const FilePath &repository, const QString &relativePath, bool staged)
 {
     m_git.showDiff(repository, relativePath, staged);
+}
+
+void GitFileActions::diffAllChanges(const FilePath &repository,
+                                    const QStringList &unstagedPaths,
+                                    const QStringList &stagedPaths)
+{
+    m_git.showDiffAll(repository, unstagedPaths, stagedPaths);
 }
 
 static void runGitClient(

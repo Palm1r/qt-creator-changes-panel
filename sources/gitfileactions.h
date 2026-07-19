@@ -54,8 +54,13 @@ public:
 
     Utils::Result<> applyStageAction(StageAction action, const QList<StageableFile> &files);
     Utils::Result<> revertFile(const Utils::FilePath &repository, const QString &relativePath);
+    Utils::Result<> revertFiles(const Utils::FilePath &repository,
+                                const QStringList &relativePaths);
 
     void diffFile(const Utils::FilePath &repository, const QString &relativePath, bool staged);
+    void diffAllChanges(const Utils::FilePath &repository,
+                        const QStringList &unstagedPaths,
+                        const QStringList &stagedPaths);
     void openRepositoryInGitClient(const Utils::FilePath &repository);
     void openFileInGitClient(const Utils::FilePath &repository, const QString &relativePath);
 

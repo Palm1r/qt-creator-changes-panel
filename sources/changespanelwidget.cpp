@@ -3,6 +3,7 @@
 
 #include "changespanelwidget.h"
 
+#include "changeddocumentsdelegate.h"
 #include "changeddocumentsmodel.h"
 #include "changespanelsettings.h"
 #include "changespaneltr.h"
@@ -188,10 +189,10 @@ QToolButton *ChangesPanelWidget::createGitClientButton()
         = Icon({{":/changespanel/icons/gitclient.png", Theme::IconsBaseColor}}, Icon::Tint).icon();
     button->setIcon(clientIcon);
 
-    const auto updateEnabled = [this, button] {
+    const auto updateEnabled = [tracker = m_tracker, button] {
         const bool configured
             = !settings().gitClientRepositoryCommand().trimmed().isEmpty();
-        const bool hasRepository = !m_tracker->repositories().isEmpty();
+        const bool hasRepository = !tracker->repositories().isEmpty();
         button->setEnabled(configured && hasRepository);
         if (!configured) {
             button->setToolTip(
@@ -209,32 +210,111 @@ QToolButton *ChangesPanelWidget::createGitClientButton()
     connect(m_tracker, &GitStatusTracker::repositoriesChanged, button, updateEnabled);
 
     connect(button, &QToolButton::clicked, this, [this, button] {
-        const QList<FilePath> repositories = m_tracker->repositories();
-        if (repositories.isEmpty())
-            return;
-        if (repositories.size() == 1) {
-            m_actions->openRepositoryInGitClient(repositories.first());
-            return;
-        }
-        QMenu menu;
-        menu.setToolTipsVisible(true);
-        for (const FilePath &repository : repositories) {
-            const RepositoryInfo info = m_tracker->repositoryInfo(repository);
-            QString text = repository.fileName();
-            if (info.isSubmodule && !info.parentRepository.isEmpty()) {
-                const QString path
-                    = repository.relativeChildPath(info.parentRepository).parentDir().path();
-                if (!path.isEmpty())
-                    text = QString("%1 — %2").arg(text, path);
-            }
-            QAction *action = menu.addAction(text, this, [this, repository] {
-                m_actions->openRepositoryInGitClient(repository);
-            });
-            action->setToolTip(repository.toUserOutput());
-        }
-        menu.exec(button->mapToGlobal(QPoint(0, button->height())));
+        runForRepository(button, [this](const FilePath &repository) {
+            m_actions->openRepositoryInGitClient(repository);
+        });
     });
     return button;
+}
+
+QToolButton *ChangesPanelWidget::createDiffButton()
+{
+    auto button = new QToolButton;
+    button->setIcon(diffActionIcon());
+
+    const auto updateEnabled = [model = m_model, button] {
+        bool hasChanges = false;
+        const int groupCount = model->rowCount();
+        for (int group = 0; group < groupCount && !hasChanges; ++group)
+            hasChanges = model->rowCount(model->index(group, 0)) > 0;
+        button->setEnabled(hasChanges);
+        button->setToolTip(hasChanges ? Tr::tr("Diff All Changes")
+                                      : Tr::tr("No changed files."));
+    };
+    updateEnabled();
+    connect(m_model, &QAbstractItemModel::rowsInserted, button, updateEnabled);
+    connect(m_model, &QAbstractItemModel::rowsRemoved, button, updateEnabled);
+    connect(m_model, &QAbstractItemModel::modelReset, button, updateEnabled);
+
+    connect(button, &QToolButton::clicked, this, [this, button] {
+        runForRepository(
+            button,
+            [this](const FilePath &repository) { diffAllChanges(repository); },
+            [this](const FilePath &repository) { return repositoryHasChanges(repository); });
+    });
+    return button;
+}
+
+void ChangesPanelWidget::runForRepository(
+    QToolButton *button,
+    const std::function<void(const FilePath &)> &action,
+    const std::function<bool(const FilePath &)> &accept)
+{
+    QList<FilePath> repositories = m_tracker->repositories();
+    if (accept) {
+        repositories.removeIf(
+            [&accept](const FilePath &repository) { return !accept(repository); });
+    }
+    if (repositories.isEmpty())
+        return;
+    if (repositories.size() == 1) {
+        action(repositories.first());
+        return;
+    }
+    QMenu menu;
+    menu.setToolTipsVisible(true);
+    for (const FilePath &repository : repositories) {
+        const RepositoryInfo info = m_tracker->repositoryInfo(repository);
+        QString text = repository.fileName();
+        if (info.isSubmodule && !info.parentRepository.isEmpty()) {
+            const QString path
+                = repository.relativeChildPath(info.parentRepository).parentDir().path();
+            if (!path.isEmpty())
+                text = QString("%1 — %2").arg(text, path);
+        }
+        QAction *menuAction = menu.addAction(text, this, [action, repository] {
+            action(repository);
+        });
+        menuAction->setToolTip(repository.toUserOutput());
+    }
+    menu.exec(button->mapToGlobal(QPoint(0, button->height())));
+}
+
+bool ChangesPanelWidget::repositoryHasChanges(const FilePath &repository) const
+{
+    const int groupCount = m_model->rowCount();
+    for (int group = 0; group < groupCount; ++group) {
+        const QModelIndex groupIndex = m_model->index(group, 0);
+        const int rows = m_model->rowCount(groupIndex);
+        for (int row = 0; row < rows; ++row) {
+            if (repositoryAt(m_model->index(row, 0, groupIndex)) == repository)
+                return true;
+        }
+    }
+    return false;
+}
+
+void ChangesPanelWidget::diffAllChanges(const FilePath &repository) const
+{
+    QStringList unstagedPaths;
+    QStringList stagedPaths;
+    const int groupCount = m_model->rowCount();
+    for (int group = 0; group < groupCount; ++group) {
+        const QModelIndex groupIndex = m_model->index(group, 0);
+        const int rows = m_model->rowCount(groupIndex);
+        for (int row = 0; row < rows; ++row) {
+            const QModelIndex child = m_model->index(row, 0, groupIndex);
+            if (repositoryAt(child) != repository)
+                continue;
+            if (group == ChangedDocumentsModel::StagedGroup)
+                stagedPaths.append(relativePathAt(child));
+            else
+                unstagedPaths.append(relativePathAt(child));
+        }
+    }
+    if (unstagedPaths.isEmpty() && stagedPaths.isEmpty())
+        return;
+    m_actions->diffAllChanges(repository, unstagedPaths, stagedPaths);
 }
 
 } // namespace ChangesPanel

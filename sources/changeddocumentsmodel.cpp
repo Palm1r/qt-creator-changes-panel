@@ -136,12 +136,37 @@ QModelIndex ChangedDocumentsModel::indexForFile(const FilePath &filePath) const
     return index(location.row, FileNameColumn, groupIndex(location.group));
 }
 
+bool ChangedDocumentsModel::hasRevertableEntries(int group, const FilePath &repository) const
+{
+    if (group < 0 || group >= GroupCount)
+        return false;
+    const auto &entries = m_entries.at(group);
+    return std::any_of(entries.cbegin(), entries.cend(), [&repository](const Entry &entry) {
+        return isRevertable(entry.state)
+               && (repository.isEmpty() || entry.repository == repository);
+    });
+}
+
 QVariant ChangedDocumentsModel::groupData(int group, int column, int role) const
 {
     if (role == Qt::DisplayRole && column == FileNameColumn)
         return groupInfo(group).title();
     if (role == GroupStageActionRole)
         return int(groupInfo(group).stageAction);
+    if (role == GroupHasRevertableRole)
+        return hasRevertableEntries(group, {});
+    if (role == Qt::ToolTipRole) {
+        if (column == RevertColumn)
+            return Tr::tr("Revert All Changes in \"%1\"").arg(groupInfo(group).title());
+        if (column == StageColumn) {
+            switch (groupInfo(group).stageAction) {
+            case StageAction::Stage:   return Tr::tr("Stage All Changes");
+            case StageAction::Unstage: return Tr::tr("Unstage All Changes");
+            case StageAction::None:    break;
+            }
+        }
+        return {};
+    }
     return {};
 }
 
@@ -280,13 +305,20 @@ void ChangedDocumentsModel::setState(Entry entry)
         return;
     }
     if (location.group == targetGroup) {
-        if (m_entries.at(location.group).at(location.row).state == entry.state)
+        const FileState previousState = m_entries.at(location.group).at(location.row).state;
+        if (previousState == entry.state)
             return;
         m_entries.at(location.group)[location.row].state = entry.state;
         emit dataChanged(
             index(location.row, 0, groupIndex(location.group)),
             index(location.row, ColumnCount - 1, groupIndex(location.group)),
             {Qt::ForegroundRole, Qt::FontRole, Qt::ToolTipRole, StateRole});
+        if (isRevertable(previousState) != isRevertable(entry.state)) {
+            emit dataChanged(
+                groupIndex(location.group),
+                index(location.group, ColumnCount - 1),
+                {GroupHasRevertableRole});
+        }
     } else {
         Entry moved = m_entries.at(location.group).at(location.row);
         moved.state = entry.state;
@@ -404,6 +436,11 @@ bool stagedAt(const QModelIndex &index)
 StageAction groupStageActionAt(const QModelIndex &index)
 {
     return StageAction(index.data(ChangedDocumentsModel::GroupStageActionRole).toInt());
+}
+
+bool groupHasRevertableAt(const QModelIndex &index)
+{
+    return index.data(ChangedDocumentsModel::GroupHasRevertableRole).toBool();
 }
 
 } // namespace ChangesPanel

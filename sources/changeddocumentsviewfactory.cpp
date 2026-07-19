@@ -29,7 +29,10 @@ ChangedDocumentsViewFactory::ChangedDocumentsViewFactory(ChangedDocumentsModel *
 Core::NavigationView ChangedDocumentsViewFactory::createWidget()
 {
     auto widget = new ChangesPanelWidget(m_model, m_tracker, m_actions);
-    return {widget, {widget->createGitClientButton(), widget->createMenuButton()}};
+    return {widget,
+            {widget->createDiffButton(),
+             widget->createGitClientButton(),
+             widget->createMenuButton()}};
 }
 
 } // namespace ChangesPanel

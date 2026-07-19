@@ -31,18 +31,19 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QPointer>
 #include <QTimer>
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <utility>
 
 using namespace Core;
 using namespace Utils;
 
 namespace ChangesPanel {
 
-constexpr int kActionIconMargin = 6;
 constexpr int kViewIndentation = 12;
 constexpr int kViewHeightPadding = 4;
 constexpr qreal kHeaderTextTint = 0.08;
@@ -176,14 +177,7 @@ void RepositorySectionWidget::setupDelegate()
 
     m_view->viewport()->setAttribute(Qt::WA_Hover);
     m_view->viewport()->setMouseTracking(true);
-    connect(m_view, &QAbstractItemView::entered, this, [this](const QModelIndex &index) {
-        m_delegate->setHoveredIndex(index);
-        m_view->viewport()->update();
-    });
-    connect(m_view, &QAbstractItemView::viewportEntered, this, [this] {
-        m_delegate->setHoveredIndex({});
-        m_view->viewport()->update();
-    });
+    m_view->viewport()->installEventFilter(this);
 }
 
 void RepositorySectionWidget::setupColumns()
@@ -193,24 +187,16 @@ void RepositorySectionWidget::setupColumns()
     header->setMinimumSectionSize(0);
     header->setSectionResizeMode(ChangedDocumentsModel::FileNameColumn, QHeaderView::Stretch);
 
-    const int actionWidth = m_view->fontMetrics().height() + kActionIconMargin;
     for (int column : {int(ChangedDocumentsModel::RevertColumn),
                        int(ChangedDocumentsModel::DiffColumn),
                        int(ChangedDocumentsModel::StageColumn)}) {
-        header->setSectionResizeMode(column, QHeaderView::Fixed);
-        header->resizeSection(column, actionWidth);
+        m_view->setColumnHidden(column, true);
     }
-    header->resizeSection(ChangedDocumentsModel::StageColumn, actionWidth + kTrailingPadding);
 
-    const auto applyButtonVisibility = [this] {
-        m_view->setColumnHidden(ChangedDocumentsModel::RevertColumn, !settings().showRevertButton());
-        m_view->setColumnHidden(ChangedDocumentsModel::DiffColumn, !settings().showDiffButton());
-        m_view->setColumnHidden(ChangedDocumentsModel::StageColumn, !settings().showStageButton());
-    };
-    applyButtonVisibility();
     for (Utils::BoolAspect *button :
          {&settings().showDiffButton, &settings().showStageButton, &settings().showRevertButton}) {
-        connect(button, &Utils::BaseAspect::changed, this, applyButtonVisibility);
+        connect(button, &Utils::BaseAspect::changed, this,
+                [this] { m_view->viewport()->update(); });
     }
 }
 
@@ -324,7 +310,111 @@ bool RepositorySectionWidget::eventFilter(QObject *watched, QEvent *event)
         setCollapsed(!m_collapsed, true);
         return true;
     }
+    if (m_view && watched == m_view->viewport())
+        return handleViewportEvent(event);
     return QWidget::eventFilter(watched, event);
+}
+
+std::optional<RepositorySectionWidget::ZoneHit> RepositorySectionWidget::actionZoneAt(
+    const QPoint &pos) const
+{
+    const QModelIndex index = m_view->indexAt(pos);
+    if (!index.isValid())
+        return std::nullopt;
+    const QRect rowRect = m_view->visualRect(index);
+    const RowActionZones row = rowActionZones(rowRect, m_view->fontMetrics(), index);
+    if (const RowActionZone *zone = row.zoneAt(pos))
+        return ZoneHit{index, zone->column};
+    return std::nullopt;
+}
+
+void RepositorySectionWidget::triggerZoneAction(const QModelIndex &index,
+                                                ChangedDocumentsModel::Column column)
+{
+    if (isGroupHeader(index)) {
+        if (column == ChangedDocumentsModel::RevertColumn) {
+            handleGroupRevertClicked(index.siblingAtColumn(0));
+            return;
+        }
+        const StageAction action = groupStageActionAt(index);
+        if (action != StageAction::None)
+            handleGroupStageClicked(index.siblingAtColumn(0), action);
+        return;
+    }
+    switch (column) {
+    case ChangedDocumentsModel::DiffColumn:
+        triggerFileAction(diffColumnActionFor(fileStateAt(index)), index);
+        return;
+    case ChangedDocumentsModel::RevertColumn:
+        handleRevertClicked(index);
+        return;
+    case ChangedDocumentsModel::StageColumn:
+        handleStageClicked(index);
+        return;
+    case ChangedDocumentsModel::FileNameColumn:
+    case ChangedDocumentsModel::ColumnCount:
+        return;
+    }
+}
+
+bool RepositorySectionWidget::handleViewportEvent(QEvent *event)
+{
+    switch (event->type()) {
+    case QEvent::MouseMove: {
+        const QPoint pos = static_cast<QMouseEvent *>(event)->position().toPoint();
+        m_delegate->setHoverPosition(pos);
+        updateHoverZone(actionZoneAt(pos));
+        return false;
+    }
+    case QEvent::Leave:
+        m_delegate->clearHoverPosition();
+        m_pressedZone.reset();
+        updateHoverZone(std::nullopt);
+        return false;
+    case QEvent::MouseButtonPress: {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        if (mouse->button() != Qt::LeftButton)
+            return false;
+        m_pressedZone = actionZoneAt(mouse->position().toPoint());
+        return m_pressedZone.has_value();
+    }
+    case QEvent::MouseButtonDblClick: {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        if (mouse->button() != Qt::LeftButton)
+            return false;
+        m_pressedZone.reset();
+        return actionZoneAt(mouse->position().toPoint()).has_value();
+    }
+    case QEvent::MouseButtonRelease: {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        if (mouse->button() != Qt::LeftButton)
+            return false;
+        const std::optional<ZoneHit> pressed = std::exchange(m_pressedZone, std::nullopt);
+        if (!pressed)
+            return false;
+        const std::optional<ZoneHit> hit = actionZoneAt(mouse->position().toPoint());
+        if (hit && *hit == *pressed) {
+            const QPointer<RepositorySectionWidget> guard(this);
+            triggerZoneAction(hit->index, hit->column);
+            if (!guard)
+                return true;
+        }
+        return true;
+    }
+    default:
+        return false;
+    }
+}
+
+void RepositorySectionWidget::updateHoverZone(const std::optional<ZoneHit> &hit)
+{
+    if (m_hoverZone == hit)
+        return;
+    if (m_hoverZone && m_hoverZone->index.isValid())
+        m_view->viewport()->update(m_view->visualRect(m_hoverZone->index));
+    m_hoverZone = hit;
+    if (m_hoverZone)
+        m_view->viewport()->update(m_view->visualRect(m_hoverZone->index));
 }
 
 void RepositorySectionWidget::scheduleHeightUpdate()
@@ -384,31 +474,11 @@ bool RepositorySectionWidget::viewHasFocus() const
 void RepositorySectionWidget::handleActivated(const QModelIndex &index)
 {
     if (isGroupHeader(index)) {
-        if (index.column() == ChangedDocumentsModel::StageColumn) {
-            const StageAction action = groupStageActionAt(index);
-            if (action != StageAction::None) {
-                handleGroupStageClicked(index.siblingAtColumn(0), action);
-                return;
-            }
-        }
         const QModelIndex group = index.siblingAtColumn(0);
         m_view->setExpanded(group, !m_view->isExpanded(group));
         return;
     }
-
-    switch (index.column()) {
-    case ChangedDocumentsModel::DiffColumn:
-        triggerFileAction(diffColumnActionFor(fileStateAt(index)), index);
-        return;
-    case ChangedDocumentsModel::RevertColumn:
-        handleRevertClicked(index);
-        return;
-    case ChangedDocumentsModel::StageColumn:
-        handleStageClicked(index);
-        return;
-    default:
-        triggerFileAction(rowClickActionFor(fileStateAt(index)), index);
-    }
+    triggerFileAction(rowClickActionFor(fileStateAt(index)), index);
 }
 
 void RepositorySectionWidget::triggerFileAction(FileEntryAction action, const QModelIndex &index)
@@ -485,18 +555,57 @@ void RepositorySectionWidget::handleRevertClicked(const QModelIndex &index)
     reportIfFailed(m_actions->revertFile(repository, relativePath), Tr::tr("Revert Failed"));
 }
 
+static bool confirmGroupRevert(int fileCount)
+{
+    const auto answer = QMessageBox::question(
+        ICore::dialogParent(),
+        Tr::tr("Confirm File Changes"),
+        Tr::tr("<p>Undo <b>all</b> changes to %n file(s)?</p>"
+               "<p>Note: These changes will be lost.</p>", nullptr, fileCount),
+        QMessageBox::Yes | QMessageBox::No);
+    return answer == QMessageBox::Yes;
+}
+
+void RepositorySectionWidget::handleGroupRevertClicked(const QModelIndex &group)
+{
+    FilePath repository;
+    QStringList relativePaths;
+    const int rows = m_proxy->rowCount(group);
+    for (int row = 0; row < rows; ++row) {
+        const QModelIndex child = m_proxy->index(row, 0, group);
+        if (!isRevertable(fileStateAt(child)))
+            continue;
+        const FilePath childRepository = repositoryAt(child);
+        if (childRepository.isEmpty())
+            continue;
+        repository = childRepository;
+        relativePaths.append(relativePathAt(child));
+    }
+    if (relativePaths.isEmpty())
+        return;
+
+    const QPointer<RepositorySectionWidget> guard(this);
+    if (!confirmGroupRevert(int(relativePaths.size())))
+        return;
+    if (!guard)
+        return;
+
+    reportIfFailed(m_actions->revertFiles(repository, relativePaths), Tr::tr("Revert Failed"));
+}
+
 void RepositorySectionWidget::contextMenuRequested(const QPoint &pos)
 {
     const QModelIndex index = m_view->indexAt(pos);
     if (!index.isValid() || isGroupHeader(index))
         return;
     const FilePath filePath = filePathAt(index);
+    const FileState state = fileStateAt(index);
 
     QMenu menu;
     QAction *openAction = menu.addAction(Tr::tr("Open"), this, [filePath] {
         EditorManager::openEditor(filePath);
     });
-    openAction->setEnabled(fileStateAt(index) != FileState::Deleted);
+    openAction->setEnabled(state != FileState::Deleted);
     menu.addAction(Tr::tr("Open Containing Folder"), this, [filePath] {
         Core::FileUtils::showInGraphicalShell(filePath);
     });
@@ -508,6 +617,24 @@ void RepositorySectionWidget::contextMenuRequested(const QPoint &pos)
         const QString relativePath = relativePathAt(index);
         menu.addAction(Tr::tr("Open in Git Client"), this, [this, repository, relativePath] {
             m_actions->openFileInGitClient(repository, relativePath);
+        });
+    }
+
+    const StageAction stageAction = stageActionFor(state, stagedAt(index));
+    const QPersistentModelIndex persistent(index);
+    if (stageAction != StageAction::None || isRevertable(state))
+        menu.addSeparator();
+    if (stageAction != StageAction::None) {
+        menu.addAction(stageAction == StageAction::Stage ? Tr::tr("Stage") : Tr::tr("Unstage"),
+                       this, [this, persistent] {
+                           if (persistent.isValid())
+                               handleStageClicked(persistent);
+                       });
+    }
+    if (isRevertable(state)) {
+        menu.addAction(Tr::tr("Revert"), this, [this, persistent] {
+            if (persistent.isValid())
+                handleRevertClicked(persistent);
         });
     }
     menu.exec(m_view->mapToGlobal(pos));

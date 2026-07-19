@@ -57,7 +57,7 @@ public:
     void detachFromExternalSources();
 
 signals:
-    void statusChanged(const Utils::FilePath &repository, const GitStatus &status);
+    void statusChanged(const Utils::FilePath &repository, const ChangesPanel::GitStatus &status);
     void repositoryCleared(const Utils::FilePath &repository);
     void repositoriesChanged();
     void repositoryInfoChanged(const Utils::FilePath &repository);

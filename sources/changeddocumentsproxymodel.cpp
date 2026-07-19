@@ -27,6 +27,17 @@ void ChangedDocumentsProxyModel::setSourceModel(QAbstractItemModel *sourceModel)
                                        this, &ChangedDocumentsProxyModel::scheduleRefilter));
 }
 
+QVariant ChangedDocumentsProxyModel::data(const QModelIndex &index, int role) const
+{
+    if (role == ChangedDocumentsModel::GroupHasRevertableRole && !m_repository.isEmpty()) {
+        const auto *model = qobject_cast<ChangedDocumentsModel *>(sourceModel());
+        const QModelIndex source = mapToSource(index);
+        if (model && source.isValid() && !source.parent().isValid())
+            return model->hasRevertableEntries(source.row(), m_repository);
+    }
+    return QSortFilterProxyModel::data(index, role);
+}
+
 void ChangedDocumentsProxyModel::scheduleRefilter()
 {
     if (m_refilterPending)

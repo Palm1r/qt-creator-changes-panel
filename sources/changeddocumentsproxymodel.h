@@ -17,6 +17,7 @@ public:
     using QSortFilterProxyModel::QSortFilterProxyModel;
 
     void setSourceModel(QAbstractItemModel *sourceModel) final;
+    QVariant data(const QModelIndex &index, int role) const final;
 
     void setRepositoryFilter(const Utils::FilePath &repository);
 

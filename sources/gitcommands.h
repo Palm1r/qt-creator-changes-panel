@@ -42,6 +42,9 @@ public:
     virtual void showDiff(const Utils::FilePath &repository,
                           const QString &relativePath,
                           bool staged) = 0;
+    virtual void showDiffAll(const Utils::FilePath &repository,
+                             const QStringList &unstagedPaths,
+                             const QStringList &stagedPaths) = 0;
 };
 
 GitCommands &gitCommands();

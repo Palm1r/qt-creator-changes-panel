@@ -30,6 +30,7 @@ public:
         StagedRole,
         RelativeDirectoryRole,
         GroupStageActionRole,
+        GroupHasRevertableRole,
         RepositoryRole,
         RelativePathRole,
     };
@@ -56,6 +57,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const final;
 
     QModelIndex indexForFile(const Utils::FilePath &filePath) const;
+    bool hasRevertableEntries(int group, const Utils::FilePath &repository) const;
 
 private:
     struct Entry
@@ -106,5 +108,6 @@ QString relativePathAt(const QModelIndex &index);
 FileState fileStateAt(const QModelIndex &index);
 bool stagedAt(const QModelIndex &index);
 StageAction groupStageActionAt(const QModelIndex &index);
+bool groupHasRevertableAt(const QModelIndex &index);
 
 } // namespace ChangesPanel

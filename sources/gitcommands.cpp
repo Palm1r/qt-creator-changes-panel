@@ -95,6 +95,13 @@ public:
             relativePath,
             staged ? Git::Internal::GitClient::Staged : Git::Internal::GitClient::Unstaged);
     }
+
+    void showDiffAll(const FilePath &repository,
+                     const QStringList &unstagedPaths,
+                     const QStringList &stagedPaths) override
+    {
+        Git::Internal::gitClient().diffFiles(repository, unstagedPaths, stagedPaths);
+    }
 };
 
 GitCommands &gitCommands()
