@@ -19,7 +19,8 @@ public:
     Utils::BoolAspect showStageButton = {this};
     Utils::BoolAspect showRevertButton = {this};
     Utils::SelectionAspect fileClickAction = {this};
-    Utils::StringAspect externalGitClient = {this};
+    Utils::StringAspect gitClientRepositoryCommand = {this};
+    Utils::StringAspect gitClientFileCommand = {this};
 };
 
 ChangesPanelSettings &settings();

@@ -21,6 +21,7 @@
 #include <utils/stylehelper.h>
 #include <utils/theme/theme.h>
 
+#include <QAction>
 #include <QLabel>
 #include <QMenu>
 #include <QScrollArea>
@@ -187,31 +188,49 @@ QToolButton *ChangesPanelWidget::createGitClientButton()
         = Icon({{":/changespanel/icons/gitclient.png", Theme::IconsBaseColor}}, Icon::Tint).icon();
     button->setIcon(clientIcon);
 
-    const auto updateEnabled = [button] {
-        const bool configured = !settings().externalGitClient().trimmed().isEmpty();
-        button->setEnabled(configured);
-        button->setToolTip(configured
-                               ? Tr::tr("Open in External Git Client")
-                               : Tr::tr("No external Git client is configured. Set the "
-                                        "command in Preferences > Version Control > "
-                                        "Changes Panel."));
+    const auto updateEnabled = [this, button] {
+        const bool configured
+            = !settings().gitClientRepositoryCommand().trimmed().isEmpty();
+        const bool hasRepository = !m_tracker->repositories().isEmpty();
+        button->setEnabled(configured && hasRepository);
+        if (!configured) {
+            button->setToolTip(
+                Tr::tr("No Git client command is configured. Set it in "
+                       "Preferences > Version Control > Changes Panel."));
+        } else if (!hasRepository) {
+            button->setToolTip(Tr::tr("No repository is open."));
+        } else {
+            button->setToolTip(Tr::tr("Open in Git Client"));
+        }
     };
     updateEnabled();
-    connect(&settings().externalGitClient, &Utils::BaseAspect::changed, button, updateEnabled);
+    connect(&settings().gitClientRepositoryCommand, &Utils::BaseAspect::changed,
+            button, updateEnabled);
+    connect(m_tracker, &GitStatusTracker::repositoriesChanged, button, updateEnabled);
 
     connect(button, &QToolButton::clicked, this, [this, button] {
         const QList<FilePath> repositories = m_tracker->repositories();
         if (repositories.isEmpty())
             return;
         if (repositories.size() == 1) {
-            m_actions->openInExternalGitClient(repositories.first());
+            m_actions->openRepositoryInGitClient(repositories.first());
             return;
         }
         QMenu menu;
+        menu.setToolTipsVisible(true);
         for (const FilePath &repository : repositories) {
-            menu.addAction(repository.fileName(), this, [this, repository] {
-                m_actions->openInExternalGitClient(repository);
+            const RepositoryInfo info = m_tracker->repositoryInfo(repository);
+            QString text = repository.fileName();
+            if (info.isSubmodule && !info.parentRepository.isEmpty()) {
+                const QString path
+                    = repository.relativeChildPath(info.parentRepository).parentDir().path();
+                if (!path.isEmpty())
+                    text = QString("%1 — %2").arg(text, path);
+            }
+            QAction *action = menu.addAction(text, this, [this, repository] {
+                m_actions->openRepositoryInGitClient(repository);
             });
+            action->setToolTip(repository.toUserOutput());
         }
         menu.exec(button->mapToGlobal(QPoint(0, button->height())));
     });

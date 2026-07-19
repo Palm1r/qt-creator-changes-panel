@@ -57,6 +57,8 @@ add_qtc_plugin(ChangesPanel
     sources/gitfileactions.h
     sources/gitstatusparser.cpp
     sources/gitstatusparser.h
+    sources/launchcommand.cpp
+    sources/launchcommand.h
     sources/gitstatustracker.cpp
     sources/gitstatustracker.h
     sources/repositorysectionwidget.cpp
@@ -71,6 +73,8 @@ extend_qtc_plugin(ChangesPanel
   SOURCES
     tests/gitstatusparsertest.cpp
     tests/gitstatusparsertest.h
+    tests/launchcommandtest.cpp
+    tests/launchcommandtest.h
 )
 
 if(WITH_TESTS)

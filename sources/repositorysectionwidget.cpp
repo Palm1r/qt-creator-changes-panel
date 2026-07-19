@@ -503,6 +503,13 @@ void RepositorySectionWidget::contextMenuRequested(const QPoint &pos)
     menu.addAction(Tr::tr("Copy Full Path"), this, [filePath] {
         setClipboardAndSelection(filePath.toUserOutput());
     });
+    if (!settings().gitClientFileCommand().trimmed().isEmpty()) {
+        const FilePath repository = repositoryAt(index);
+        const QString relativePath = relativePathAt(index);
+        menu.addAction(Tr::tr("Open in Git Client"), this, [this, repository, relativePath] {
+            m_actions->openFileInGitClient(repository, relativePath);
+        });
+    }
     menu.exec(m_view->mapToGlobal(pos));
 }
 

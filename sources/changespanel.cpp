@@ -20,6 +20,7 @@
 
 #ifdef WITH_TESTS
 #include "gitstatusparsertest.h"
+#include "launchcommandtest.h"
 #endif
 
 namespace ChangesPanel {
@@ -36,6 +37,7 @@ public:
 
 #ifdef WITH_TESTS
         addTest<GitStatusParserTest>();
+        addTest<LaunchCommandTest>();
 #endif
 
         if (settings().enabled())

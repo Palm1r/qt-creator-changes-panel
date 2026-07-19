@@ -56,7 +56,8 @@ public:
     Utils::Result<> revertFile(const Utils::FilePath &repository, const QString &relativePath);
 
     void diffFile(const Utils::FilePath &repository, const QString &relativePath, bool staged);
-    void openInExternalGitClient(const Utils::FilePath &repository);
+    void openRepositoryInGitClient(const Utils::FilePath &repository);
+    void openFileInGitClient(const Utils::FilePath &repository, const QString &relativePath);
 
 private:
     GitCommands &m_git;

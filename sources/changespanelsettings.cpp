@@ -7,7 +7,6 @@
 
 #include <coreplugin/dialogs/ioptionspage.h>
 
-#include <utils/hostosinfo.h>
 #include <utils/layoutbuilder.h>
 
 #include <vcsbase/vcsbaseconstants.h>
@@ -59,15 +58,21 @@ ChangesPanelSettings::ChangesPanelSettings()
                                QString("editor")});
     fileClickAction.setDefaultValue(OpenDiff);
 
-    externalGitClient.setSettingsKey("ExternalGitClient");
-    externalGitClient.setDefaultValue(
-        Utils::HostOsInfo::isMacHost() ? QString("open -a \"Sublime Merge\"")
-                                       : QString("smerge"));
-    externalGitClient.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-    externalGitClient.setLabelText(Tr::tr("External Git client command"));
-    externalGitClient.setToolTip(
-        Tr::tr("Run by the panel's \"Open in Git Client\" button. The repository "
-               "path is appended as the last argument."));
+    gitClientRepositoryCommand.setSettingsKey("ExternalGitClient");
+    gitClientRepositoryCommand.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    gitClientRepositoryCommand.setLabelText(Tr::tr("Open repository command:"));
+    gitClientRepositoryCommand.setToolTip(
+        Tr::tr("Run by the panel's \"Open in Git Client\" button, from the repository "
+               "directory. %{repo} is replaced with the repository path; the command "
+               "is run exactly as written."));
+
+    gitClientFileCommand.setSettingsKey("ExternalGitClientFile");
+    gitClientFileCommand.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    gitClientFileCommand.setLabelText(Tr::tr("Open file command:"));
+    gitClientFileCommand.setToolTip(
+        Tr::tr("Run by a file's \"Open in Git Client\" context menu entry, from the "
+               "repository directory. %{repo} and %{file} are replaced with absolute "
+               "paths. Leave empty to hide the menu entry."));
 
     setLayouter([this] {
         using namespace Layouting;
@@ -85,7 +90,13 @@ ChangesPanelSettings::ChangesPanelSettings()
                 title(Tr::tr("Behavior")),
                 Column {
                     fileClickAction,
-                    externalGitClient,
+                },
+            },
+            Group {
+                title(Tr::tr("Open in Git Client")),
+                Column {
+                    gitClientRepositoryCommand,
+                    gitClientFileCommand,
                 },
             },
             st,

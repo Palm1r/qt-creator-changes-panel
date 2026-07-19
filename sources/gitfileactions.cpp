@@ -7,6 +7,7 @@
 #include "changespaneltr.h"
 #include "gitcommands.h"
 #include "gitstatustracker.h"
+#include "launchcommand.h"
 
 #include <coreplugin/icore.h>
 
@@ -159,27 +160,36 @@ void GitFileActions::diffFile(const FilePath &repository, const QString &relativ
     m_git.showDiff(repository, relativePath, staged);
 }
 
-void GitFileActions::openInExternalGitClient(const FilePath &repository)
+static void runGitClient(
+    const QString &configuredCommand,
+    const FilePath &repository,
+    const std::optional<QString> &filePath)
 {
-    QStringList parts = ProcessArgs::splitArgs(
-        settings().externalGitClient().trimmed(), HostOsInfo::hostOs());
-    if (parts.isEmpty()) {
-        QMessageBox::warning(
-            Core::ICore::dialogParent(),
-            Tr::tr("Open in Git Client"),
-            Tr::tr("No external Git client is configured. Set the command in "
-                   "Preferences > Version Control > Changes Panel."));
+    QStringList arguments = expandedLaunchCommand(
+        configuredCommand, HostOsInfo::hostOs(), repository.path(), filePath);
+    if (arguments.isEmpty())
         return;
-    }
-    CommandLine command(FilePath::fromUserInput(parts.takeFirst()));
-    command.addArgs(parts);
-    command.addArg(repository.path());
+    CommandLine command(FilePath::fromUserInput(arguments.takeFirst()));
+    command.addArgs(arguments);
     if (!Process::startDetached(command, repository)) {
         QMessageBox::warning(
             Core::ICore::dialogParent(),
             Tr::tr("Open in Git Client"),
             Tr::tr("Could not run \"%1\".").arg(command.toUserOutput()));
     }
+}
+
+void GitFileActions::openRepositoryInGitClient(const FilePath &repository)
+{
+    runGitClient(settings().gitClientRepositoryCommand(), repository, std::nullopt);
+}
+
+void GitFileActions::openFileInGitClient(const FilePath &repository, const QString &relativePath)
+{
+    runGitClient(
+        settings().gitClientFileCommand(),
+        repository,
+        repository.pathAppended(relativePath).path());
 }
 
 } // namespace ChangesPanel
