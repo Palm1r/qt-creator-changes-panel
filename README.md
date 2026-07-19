@@ -9,13 +9,21 @@ changed across your open projects, with diff, stage, and revert in the sidebar.
 
 ## Features
 
-- **Live list** of VCS-changed files across all open projects.
+- **Live list** of VCS-changed files across all open projects, sectioned per
+  repository (submodules included).
 - **Collapsible groups** — *Merge* / *Staged* / *Unstaged* — with counts, colored
   by state.
-- **Actions**: click to open; hover to diff, stage/unstage, or revert; right-click
-  for Open Containing Folder and Copy Full Path.
-- **Panel menu**: toggle untracked files plus Git actions; activate the pane with
-  `Meta+P` / `Alt+P`.
+- **Actions**: click to diff or open (configurable); hover a file to diff,
+  stage/unstage, revert, or open it in your Git client; right-click for more,
+  including Open Containing Folder and Copy Full Path.
+- **Toolbar**: diff all changes at once, open the repository in an external Git
+  client, and a Git menu; activate the pane with `Meta+P` / `Alt+P`.
+- **External Git client**: plain command lines with placeholders — e.g.
+  `smerge %{repo}` to open the repository, `smerge log %{relativeFile}` for a
+  file's history. `%{repo}`, `%{file}`, and `%{relativeFile}` are expanded when
+  the command runs.
+- **Settings**: *Preferences > Version Control > Changes Panel* — choose the
+  hover buttons, the file click action, and the Git client commands.
 
 The pane relies on Qt Creator's VCS status monitoring: make sure
 **"Show file status"** is enabled in *Preferences > Version Control > General*
