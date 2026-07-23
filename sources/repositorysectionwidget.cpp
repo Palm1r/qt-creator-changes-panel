@@ -81,6 +81,9 @@ RepositorySectionWidget::RepositorySectionWidget(
     m_separator->setFrameShape(QFrame::HLine);
     m_separator->setFrameShadow(QFrame::Plain);
     m_separator->setFixedHeight(1);
+    QPalette separatorPalette = m_separator->palette();
+    separatorPalette.setColor(QPalette::WindowText, creatorColor(Theme::SplitterColor));
+    m_separator->setPalette(separatorPalette);
 
     auto layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
